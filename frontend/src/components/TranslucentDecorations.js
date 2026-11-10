@@ -4,25 +4,52 @@ import { Ionicons } from "@expo/vector-icons";
 
 const { width: W, height: H } = Dimensions.get("window");
 
-// Floating translucent background elements with explicit pixel coordinates.
-// Strictly NO clutter at the top status bar/header area: only 2 subtle elements in the upper quadrant,
-// and the rest tastefully placed along the sides to frame the centered content.
+// Exactly 4 floating translucent elements randomly spread across the canvas (never in a line).
 const DECORATIONS = [
-  // Upper area (subtle accents away from the center logo)
-  { id: "1", icon: "sparkles", x: W * 0.84, y: H * 0.08, size: 20, rotate: "22deg", color: "rgba(185, 241, 47, 0.22)", bg: "rgba(185, 241, 47, 0.08)" },
-  { id: "2", icon: "key-outline", x: W * 0.08, y: H * 0.14, size: 22, rotate: "-20deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
-
-  // Mid canvas (framing the content on left & right margins)
-  { id: "3", icon: "laptop-outline", x: W * 0.06, y: H * 0.28, size: 26, rotate: "15deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.06)" },
-  { id: "4", icon: "phone-portrait-outline", x: W * 0.86, y: H * 0.32, size: 24, rotate: "-15deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "5", icon: "heart", x: W * 0.07, y: H * 0.44, size: 20, rotate: "10deg", color: "rgba(185, 241, 47, 0.18)", bg: "rgba(185, 241, 47, 0.07)" },
-  { id: "6", icon: "glasses-outline", x: W * 0.85, y: H * 0.46, size: 24, rotate: "-18deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "7", icon: "shield-checkmark-outline", x: W * 0.07, y: H * 0.58, size: 22, rotate: "16deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.06)" },
-  { id: "8", icon: "watch-outline", x: W * 0.85, y: H * 0.60, size: 22, rotate: "-12deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "9", icon: "headset-outline", x: W * 0.06, y: H * 0.72, size: 24, rotate: "-20deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "10", icon: "bag-outline", x: W * 0.86, y: H * 0.74, size: 24, rotate: "15deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.06)" },
-  { id: "11", icon: "card-outline", x: W * 0.10, y: H * 0.86, size: 20, rotate: "10deg", color: "rgba(255, 255, 255, 0.10)", bg: "rgba(255, 255, 255, 0.04)" },
-  { id: "12", icon: "heart-outline", x: W * 0.82, y: H * 0.88, size: 20, rotate: "-10deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.06)" },
+  // 1. Top-right quadrant
+  {
+    id: "1",
+    icon: "sparkles",
+    x: W * 0.80,
+    y: H * 0.13,
+    size: 22,
+    rotate: "24deg",
+    color: "rgba(185, 241, 47, 0.22)",
+    bg: "rgba(185, 241, 47, 0.08)",
+  },
+  // 2. Upper-mid left quadrant
+  {
+    id: "2",
+    icon: "key-outline",
+    x: W * 0.08,
+    y: H * 0.32,
+    size: 26,
+    rotate: "-18deg",
+    color: "rgba(255, 255, 255, 0.13)",
+    bg: "rgba(255, 255, 255, 0.05)",
+  },
+  // 3. Lower-mid right quadrant
+  {
+    id: "3",
+    icon: "heart",
+    x: W * 0.85,
+    y: H * 0.58,
+    size: 22,
+    rotate: "14deg",
+    color: "rgba(185, 241, 47, 0.18)",
+    bg: "rgba(185, 241, 47, 0.07)",
+  },
+  // 4. Bottom left quadrant
+  {
+    id: "4",
+    icon: "laptop-outline",
+    x: W * 0.14,
+    y: H * 0.80,
+    size: 28,
+    rotate: "-12deg",
+    color: "rgba(255, 255, 255, 0.12)",
+    bg: "rgba(255, 255, 255, 0.05)",
+  },
 ];
 
 function TranslucentDecorations() {
@@ -52,8 +79,8 @@ function TranslucentDecorations() {
 const styles = StyleSheet.create({
   badge: {
     position: "absolute",
-    padding: 8,
-    borderRadius: 20,
+    padding: 9,
+    borderRadius: 22,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",

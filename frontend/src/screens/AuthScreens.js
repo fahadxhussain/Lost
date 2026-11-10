@@ -441,11 +441,12 @@ export function OtpScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   welcome: { flex: 1, backgroundColor: C.primary },
   hero: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 36,
-    gap: 22,
+    flexGrow: 1,
+    justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    gap: 22,
   },
   centerSection: {
     alignItems: "center",
