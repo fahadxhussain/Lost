@@ -131,7 +131,7 @@ class AuthService {
     return {
       userId: user.id,
       email: user.email,
-      ...(config.nodeEnv === 'development' && { devOtp: rawOtp }),
+      ...(['development', 'test'].includes(config.nodeEnv) && { devOtp: rawOtp }),
     };
   }
 
@@ -271,7 +271,7 @@ class AuthService {
     return {
       userId: user.id,
       email: user.email,
-      ...(config.nodeEnv === 'development' && { devOtp: rawOtp }),
+      ...(['development', 'test'].includes(config.nodeEnv) && { devOtp: rawOtp }),
     };
   }
 

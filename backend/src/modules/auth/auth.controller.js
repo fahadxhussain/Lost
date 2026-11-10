@@ -1,37 +1,14 @@
-const config = require('../../config');
-const { BadRequestError } = require('../../shared/errors/AppError');
-const logger = require('../../shared/logger');
-
-// Email domain validation helper
-function isValidUniversityEmail(email) {
-  if (!email || typeof email !== 'string') return false;
-  const normalized = email.trim().toLowerCase();
-  return config.university.allowedDomains.some((domain) => normalized.endsWith(`@${domain}`));
-}
+const authService = require('./auth.service');
 
 async function register(req, res, next) {
   try {
-    const { email, password, name } = req.body;
-
-    if (!email || !password) {
-      throw new BadRequestError('Email and password are required');
-    }
-
-    if (!isValidUniversityEmail(email)) {
-      throw new BadRequestError(
-        `Registration is restricted to university emails (e.g. @${config.university.allowedDomains.join(', @')})`
-      );
-    }
-
-    // In local development / mock mode, generate a mock OTP
-    const mockOtp = '123456';
-    logger.info(`[DEV OTP] Verification OTP for ${email}: ${mockOtp}`);
+    const { email, password, name, rollNumber } = req.body;
+    const result = await authService.register({ email, password, name, rollNumber });
 
     return res.status(201).json({
       status: 'success',
       message: 'Verification OTP sent to your university email',
-      userId: 'mock-user-uuid',
-      ...(config.nodeEnv === 'development' && { devOtp: mockOtp }),
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -40,14 +17,28 @@ async function register(req, res, next) {
 
 async function verifyOtp(req, res, next) {
   try {
-    const { userId, otp } = req.body;
-    if (!userId || !otp) {
-      throw new BadRequestError('User ID and OTP are required');
-    }
+    const { userId, email, otp } = req.body;
+    const result = await authService.verifyOtp({ userId, email, otp });
 
     return res.status(200).json({
       status: 'success',
       message: 'Account activated successfully',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function resendOtp(req, res, next) {
+  try {
+    const { email, userId } = req.body;
+    const result = await authService.resendOtp({ email, userId });
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'New verification OTP sent to your university email',
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -57,21 +48,24 @@ async function verifyOtp(req, res, next) {
 async function login(req, res, next) {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
-      throw new BadRequestError('Email and password are required');
-    }
-
-    if (!isValidUniversityEmail(email)) {
-      throw new BadRequestError('Must provide a valid university email');
-    }
+    const result = await authService.login({ email, password });
 
     return res.status(200).json({
       status: 'success',
-      token: 'mock-jwt-token-replace-with-database-record',
-      user: {
-        id: 'mock-user-uuid',
-        email,
-        name: email.split('@')[0],
+      message: 'Logged in successfully',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getMe(req, res, next) {
+  try {
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        user: req.user,
       },
     });
   } catch (error) {
@@ -82,6 +76,7 @@ async function login(req, res, next) {
 module.exports = {
   register,
   verifyOtp,
+  resendOtp,
   login,
-  isValidUniversityEmail,
+  getMe,
 };
