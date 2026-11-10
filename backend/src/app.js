@@ -14,6 +14,7 @@ const categoriesRoutes = require('./modules/categories/categories.routes');
 const reportsRoutes = require('./modules/reports/reports.routes');
 const searchRoutes = require('./modules/search/search.routes');
 const notificationsRoutes = require('./modules/notifications/notifications.routes');
+const messagingRoutes = require('./modules/messaging/messaging.routes');
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/reports', reportsRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
+app.use('/api/v1/conversations', messagingRoutes);
 
 // Catch 404 for unhandled routes
 app.all('*', (req, res, next) => {
