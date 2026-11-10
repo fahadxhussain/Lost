@@ -133,6 +133,16 @@ function harness() {
               SafeAreaProvider: "SafeAreaProvider",
             };
           if (name === "expo-image-picker") return {};
+          if (name === "expo-haptics")
+            return {
+              ImpactFeedbackStyle: { Light: "light" },
+              selectionAsync: async () => {
+                calls.push(["haptic", "selection"]);
+              },
+              impactAsync: async (style) => {
+                calls.push(["haptic", style]);
+              },
+            };
           if (name.endsWith("/services/api")) return api;
           if (name.endsWith("/context/AuthContext"))
             return { useAuth: () => auth };
@@ -180,6 +190,59 @@ function button(tree, label) {
       node.findAllByType("Text").some((text) => text.props.children === label),
     );
 }
+test("touch feedback preserves actions, hover and press styles, and suppresses disabled taps", async () => {
+  const h = harness();
+  const TouchTarget = h.load("src/components/TouchTarget.js").default;
+  const event = { nativeEvent: {} };
+  let presses = 0;
+  const props = {
+    onPress: (received) => {
+      assert.equal(received, event);
+      presses += 1;
+      return "action-result";
+    },
+    style: { borderRadius: 20 },
+  };
+  let tree;
+  await act(async () => {
+    tree = renderer.create(React.createElement(TouchTarget, props));
+  });
+  const target = () => tree.root.findByType("Pressable");
+  act(() => assert.equal(target().props.onPress(event), "action-result"));
+  assert.equal(presses, 1);
+  assert.ok(
+    h.calls.some(([kind, type]) => kind === "haptic" && type === "selection"),
+  );
+  act(() => target().props.onHoverIn(event));
+  assert.ok(
+    target()
+      .props.style({ pressed: false })
+      .some((style) => style?.opacity === 0.86),
+  );
+  act(() => target().props.onHoverOut(event));
+  assert.ok(
+    !target()
+      .props.style({ pressed: false })
+      .some((style) => style?.opacity),
+  );
+  assert.ok(
+    target()
+      .props.style({ pressed: true })
+      .some((style) => style?.opacity === 0.7),
+  );
+  await act(async () => {
+    tree.update(React.createElement(TouchTarget, { ...props, disabled: true }));
+  });
+  h.calls.length = 0;
+  act(() => target().props.onPress(event));
+  assert.equal(presses, 1);
+  assert.equal(
+    h.calls.some(([kind]) => kind === "haptic"),
+    false,
+  );
+  act(() => tree.unmount());
+});
+
 test("sign-in screen sends normalized university email and accepts nested backend session", async () => {
   const h = harness();
   const { AuthScreen } = h.load("src/screens/AuthScreens.js");

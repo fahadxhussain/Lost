@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Text, Pressable, View } from "react-native";
+import { Text, View } from "react-native";
+import Pressable from "../components/TouchTarget";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   categoriesApi,

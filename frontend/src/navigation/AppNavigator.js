@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Text, Pressable, View } from "react-native";
+import { Text, View } from "react-native";
+import Pressable from "../components/TouchTarget";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -140,6 +141,8 @@ function MainTabs() {
         header: (props) => <Header {...props} />,
         sceneStyle: { backgroundColor: C.background },
         tabBarHideOnKeyboard: true,
+        tabBarButton: (props) => <Pressable {...props} />,
+        tabBarLabelPosition: "below-icon",
         tabBarActiveTintColor: C.primary,
         tabBarInactiveTintColor: C.textMuted,
         tabBarStyle: {
@@ -148,27 +151,37 @@ function MainTabs() {
           borderTopLeftRadius: 28,
           borderTopRightRadius: 28,
           paddingTop: 8,
-          height: 72 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 8),
+          height: 76 + Math.max(insets.bottom, 8),
         },
-        tabBarLabelStyle: { fontSize: 10, paddingBottom: 8 },
-        tabBarIcon: ({ focused }) => (
+        tabBarItemStyle: { paddingVertical: 4 },
+        tabBarIconStyle: { width: 48, height: 34 },
+        tabBarLabelStyle: { fontSize: 10, lineHeight: 14, marginTop: 4 },
+        tabBarIcon: ({ focused, color }) => (
           <View
             style={{
-              paddingHorizontal: 14,
-              paddingVertical: 5,
+              width: 48,
+              height: 34,
+              alignItems: "center",
+              justifyContent: "center",
               borderRadius: 20,
               backgroundColor:
                 route.name === "Report"
                   ? C.secondary
                   : focused
                     ? C.primary
-                    : C.cardBg,
+                    : "transparent",
             }}
           >
             <Icon
               name={icons[route.name]}
+              size={22}
               color={
-                focused && route.name !== "Report" ? C.background : C.primary
+                route.name === "Report"
+                  ? C.primary
+                  : focused
+                    ? C.background
+                    : color
               }
             />
           </View>

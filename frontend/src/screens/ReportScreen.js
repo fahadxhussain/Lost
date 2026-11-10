@@ -1,13 +1,7 @@
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  Platform,
-  ScrollView,
-  Text,
-  Pressable,
-  View,
-} from "react-native";
+import { Modal, Platform, ScrollView, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import Pressable from "../components/TouchTarget";
 import { categoriesApi, reportsApi, errorMessage } from "../services/api";
 import {
   Button,
@@ -178,7 +172,7 @@ export default function ReportScreen({ route, navigation }) {
           label="Item title"
           value={values.title}
           onChangeText={set("title")}
-          placeholder="Black leather wallet"
+          placeholder="e.g. Black leather wallet"
         />
         <Field
           label="Description · Required"
@@ -191,7 +185,7 @@ export default function ReportScreen({ route, navigation }) {
           label="Location"
           value={values.incidentLocation}
           onChangeText={set("incidentLocation")}
-          placeholder="CS Lab, Block A"
+          placeholder="e.g. CS Lab, Block A"
         />
         <View style={{ flexDirection: "row", gap: 14 }}>
           <View style={{ flex: 1, gap: 6 }}>

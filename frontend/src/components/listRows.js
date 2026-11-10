@@ -1,5 +1,6 @@
 import React, { memo, useCallback } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import Pressable from "./TouchTarget";
 import { Button, Icon, ReportCard, s } from "./ui";
 import { COLORS as C } from "../constants/theme";
 import { formatDate } from "../utils/reports";

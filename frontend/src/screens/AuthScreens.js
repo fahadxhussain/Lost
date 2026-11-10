@@ -44,8 +44,8 @@ export function WelcomeScreen({ navigation }) {
             <Icon name="mail-outline" color={C.border} />
             <TextInput
               accessibilityLabel="Student email"
-              placeholder="you@isbstudent.comsats.edu.pk"
-              placeholderTextColor={C.border}
+              placeholder="e.g. fa25-bcs-000@isbstudent.comsats.edu.pk"
+              placeholderTextColor={C.border + "99"}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -128,6 +128,7 @@ export function AuthScreen({ navigation, route }) {
         {register && (
           <Field
             label="Your name"
+            placeholder="e.g. Alex Khan"
             value={name}
             onChangeText={setName}
             autoComplete="name"
@@ -137,7 +138,7 @@ export function AuthScreen({ navigation, route }) {
           label="Student email"
           value={email}
           onChangeText={setEmail}
-          placeholder="sp23-bse-011@isbstudent.comsats.edu.pk"
+          placeholder="e.g. fa25-bcs-000@isbstudent.comsats.edu.pk"
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
@@ -145,6 +146,11 @@ export function AuthScreen({ navigation, route }) {
         />
         <Field
           label="Password"
+          placeholder={
+            register
+              ? "Choose a password (8+ characters)"
+              : "Enter your password"
+          }
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -220,6 +226,7 @@ export function OtpScreen({ navigation, route }) {
       <Text style={s.body}>Enter the verification code sent to {email}.</Text>
       <Field
         label="Verification code"
+        placeholder="Enter 6-digit code"
         value={otp}
         onChangeText={(v) => setOtp(v.replace(/\D/g, ""))}
         maxLength={6}

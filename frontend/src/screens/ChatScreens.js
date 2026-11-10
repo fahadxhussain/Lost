@@ -254,7 +254,7 @@ export function ChatScreen({ route }) {
         <TextInput
           accessibilityLabel="Message"
           placeholder="Write a message…"
-          placeholderTextColor={C.textMuted}
+          placeholderTextColor={C.placeholder}
           editable={!busy}
           multiline
           value={draft}

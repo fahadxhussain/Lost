@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  Pressable,
   View,
 } from "react-native";
 import { Image } from "expo-image";
@@ -16,6 +15,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS as C } from "../constants/theme";
 import { formatDate } from "../utils/reports";
+import Pressable from "./TouchTarget";
 
 export function Icon({ name, size = 22, color = C.primary }) {
   return <Ionicons name={name} size={size} color={color} />;
@@ -27,6 +27,7 @@ export function Button({ title, onPress, busy, disabled, secondary, style }) {
       accessibilityState={{ disabled: !!(busy || disabled) }}
       disabled={busy || disabled}
       onPress={onPress}
+      haptic="light"
       style={[
         s.button,
         secondary && s.secondary,
@@ -50,7 +51,7 @@ export function Field({ label, style, ...props }) {
     <View style={[{ gap: 6, marginBottom: 14 }, style]}>
       <Text style={s.label}>{label}</Text>
       <TextInput
-        placeholderTextColor={C.textMuted}
+        placeholderTextColor={C.placeholder}
         style={[
           s.input,
           props.multiline && { minHeight: 94, textAlignVertical: "top" },
