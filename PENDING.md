@@ -52,6 +52,7 @@ This document tracks items that require confirmation, unresolved architecture po
   - [x] Background matching worker process
   - [x] Gemini API client with structured schema responses
   - [x] Notification generation for both report owners
-- [ ] **Phase 7: In-App Messaging & Notifications**
-  - [ ] Conversation threads and message persistence
-  - [ ] Unread notification counts and delivery
+- [x] **Phase 7: In-App Messaging & Notifications**
+  - [x] Conversation threads and message persistence
+  - [x] Unread notification counts and delivery
+  - [x] Real-time Socket.IO events and room joins
