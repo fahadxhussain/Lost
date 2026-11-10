@@ -71,42 +71,42 @@ function Header({ navigation, route, options, back }) {
       }}
     >
       <StatusBar barStyle="light-content" backgroundColor={C.primary} />
-      {/* Exactly two translucent decorative elements in the header */}
+      {/* Subtle lost item accents in header background */}
       <View
         pointerEvents="none"
         style={{
           position: "absolute",
-          right: -10,
-          top: -10,
-          width: 76,
-          height: 76,
-          borderRadius: 38,
-          backgroundColor: "rgba(255, 255, 255, 0.06)",
+          right: -8,
+          top: -8,
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: "rgba(255, 255, 255, 0.05)",
           borderWidth: 1,
-          borderColor: "rgba(255, 255, 255, 0.10)",
+          borderColor: "rgba(255, 255, 255, 0.08)",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Ionicons name="sparkles" size={28} color="rgba(185, 241, 47, 0.18)" />
+        <Ionicons name="key-outline" size={24} color="rgba(255, 255, 255, 0.16)" />
       </View>
       <View
         pointerEvents="none"
         style={{
           position: "absolute",
-          left: "42%",
-          bottom: -16,
-          width: 52,
-          height: 52,
-          borderRadius: 26,
-          backgroundColor: "rgba(185, 241, 47, 0.05)",
+          left: "44%",
+          bottom: -14,
+          width: 50,
+          height: 50,
+          borderRadius: 25,
+          backgroundColor: "rgba(255, 255, 255, 0.04)",
           borderWidth: 1,
-          borderColor: "rgba(185, 241, 47, 0.10)",
+          borderColor: "rgba(255, 255, 255, 0.07)",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Ionicons name="heart" size={20} color="rgba(185, 241, 47, 0.15)" />
+        <Ionicons name="wallet-outline" size={20} color="rgba(255, 255, 255, 0.14)" />
       </View>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
