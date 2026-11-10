@@ -20,7 +20,16 @@ import Pressable from "./TouchTarget";
 export function Icon({ name, size = 22, color = C.primary }) {
   return <Ionicons name={name} size={size} color={color} />;
 }
-export function Button({ title, onPress, busy, disabled, secondary, style }) {
+export function Button({
+  title,
+  onPress,
+  busy,
+  disabled,
+  secondary,
+  style,
+  textStyle,
+  rightIcon,
+}) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -38,8 +47,34 @@ export function Button({ title, onPress, busy, disabled, secondary, style }) {
     >
       {busy ? (
         <ActivityIndicator color={secondary ? C.primary : C.cardBg} />
+      ) : rightIcon ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          <Text
+            style={[
+              s.buttonText,
+              secondary && { color: C.primary },
+              textStyle,
+            ]}
+          >
+            {title}
+          </Text>
+          {rightIcon}
+        </View>
       ) : (
-        <Text style={[s.buttonText, secondary && { color: C.primary }]}>
+        <Text
+          style={[
+            s.buttonText,
+            secondary && { color: C.primary },
+            textStyle,
+          ]}
+        >
           {title}
         </Text>
       )}
@@ -47,25 +82,71 @@ export function Button({ title, onPress, busy, disabled, secondary, style }) {
   );
 }
 export const Field = React.forwardRef(function Field(
-  { label, style, error, hint, ...props },
+  {
+    label,
+    style,
+    inputStyle,
+    error,
+    hint,
+    rightAccessory,
+    placeholderTextColor,
+    ...props
+  },
   ref,
 ) {
+  const resolvedPlaceholderColor = placeholderTextColor || C.placeholder;
   return (
     <View style={[{ gap: 6, marginBottom: 14 }, style]}>
-      <Text style={s.label}>{label}</Text>
-      <TextInput
-        ref={ref}
-        accessibilityLabel={label}
-        accessibilityHint={error || hint}
-        aria-invalid={!!error}
-        placeholderTextColor={C.placeholder}
-        style={[
-          s.input,
-          props.multiline && { minHeight: 94, textAlignVertical: "top" },
-          error && { borderColor: C.danger },
-        ]}
-        {...props}
-      />
+      {label ? <Text style={s.label}>{label}</Text> : null}
+      {rightAccessory ? (
+        <View
+          style={[
+            s.input,
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              paddingVertical: Platform.OS === "ios" ? 12 : 6,
+              paddingRight: 10,
+            },
+            error && { borderColor: C.danger },
+            inputStyle,
+          ]}
+        >
+          <TextInput
+            ref={ref}
+            accessibilityLabel={label}
+            accessibilityHint={error || hint}
+            aria-invalid={!!error}
+            placeholderTextColor={resolvedPlaceholderColor}
+            style={[
+              {
+                flex: 1,
+                color: C.text,
+                fontSize: 14,
+                paddingVertical: Platform.OS === "ios" ? 2 : 6,
+              },
+              props.multiline && { minHeight: 94, textAlignVertical: "top" },
+            ]}
+            {...props}
+          />
+          {rightAccessory}
+        </View>
+      ) : (
+        <TextInput
+          ref={ref}
+          accessibilityLabel={label}
+          accessibilityHint={error || hint}
+          aria-invalid={!!error}
+          placeholderTextColor={resolvedPlaceholderColor}
+          style={[
+            s.input,
+            props.multiline && { minHeight: 94, textAlignVertical: "top" },
+            error && { borderColor: C.danger },
+            inputStyle,
+          ]}
+          {...props}
+        />
+      )}
       {error ? (
         <Text
           accessibilityRole="alert"

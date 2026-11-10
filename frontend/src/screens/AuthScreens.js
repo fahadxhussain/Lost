@@ -8,7 +8,10 @@ import {
   StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Button, ErrorNotice, Field, Icon, Screen, s } from "../components/ui";
+import Pressable from "../components/TouchTarget";
+import TranslucentDecorations from "../components/TranslucentDecorations";
 import { COLORS as C } from "../constants/theme";
 import { authApi, errorMessage, userError } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -16,12 +19,15 @@ import { useSubmission } from "../hooks/useSubmission";
 import { authErrors, LIMITS, normalizeEmail } from "../utils/validation";
 
 export function WelcomeScreen({ navigation }) {
-  const [email, setEmail] = useState("");
   const { sessionNotice } = useAuth();
   return (
     <SafeAreaView style={styles.welcome}>
       <StatusBar barStyle="light-content" backgroundColor={C.primary} />
-      <ScrollView contentContainerStyle={styles.hero}>
+      <TranslucentDecorations />
+      <ScrollView
+        contentContainerStyle={styles.hero}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.mark}>
           <Icon name="scan-outline" size={32} />
         </View>
@@ -38,47 +44,48 @@ export function WelcomeScreen({ navigation }) {
           ].map(([icon, text]) => (
             <View key={text} style={{ alignItems: "center", gap: 10 }}>
               <Icon name={icon} color={C.secondary} />
-              <Text style={{ color: C.cardBg }}>{text}</Text>
+              <Text style={{ color: C.cardBg, fontWeight: "500" }}>{text}</Text>
             </View>
           ))}
         </View>
-        <View style={{ gap: 14 }}>
+
+        <View style={styles.trustBadge}>
+          <Ionicons name="shield-checkmark" size={15} color={C.secondary} />
+          <Text style={styles.trustBadgeText}>
+            Your campus email · A password · A safer return
+          </Text>
+        </View>
+
+        <View style={{ gap: 14, marginTop: 6 }}>
           {sessionNotice && (
-            <Text accessibilityRole="alert" style={{ color: C.cardBg }}>
+            <Text
+              accessibilityRole="alert"
+              style={{ color: C.cardBg, textAlign: "center" }}
+            >
               {sessionNotice}
             </Text>
           )}
-          <View style={styles.emailRow}>
-            <Icon name="mail-outline" color={C.border} />
-            <TextInput
-              accessibilityLabel="Student email"
-              placeholder="e.g. fa25-bcs-000@isbstudent.comsats.edu.pk"
-              placeholderTextColor={C.border + "99"}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={{ flex: 1, color: C.cardBg, fontSize: 14 }}
-            />
-          </View>
           <Button
             title="Get started"
-            style={{ backgroundColor: C.background }}
-            secondary
-            onPress={() => navigation.navigate("Register", { email })}
+            style={{ backgroundColor: C.secondary, minHeight: 52 }}
+            textStyle={{ color: C.primary, fontSize: 16, fontWeight: "700" }}
+            rightIcon={
+              <Ionicons name="arrow-forward" size={20} color={C.primary} />
+            }
+            onPress={() => navigation.navigate("Register")}
           />
-          <Text style={{ color: C.border, fontSize: 11 }}>
-            Your campus email. A password. A safer return.
-          </Text>
-          <Button
-            title="I already have an account"
-            onPress={() => navigation.navigate("Login", { email })}
-          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="I already have an account"
+            onPress={() => navigation.navigate("Login")}
+            style={styles.loginLink}
+          >
+            <Text style={styles.loginLinkText}>
+              Already have an account?{" "}
+              <Text style={styles.loginLinkHighlight}>Sign in</Text>
+            </Text>
+          </Pressable>
         </View>
-        <Text style={{ color: C.border, fontSize: 12 }}>
-          Recover what’s lost, securely.
-        </Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -91,6 +98,7 @@ export function AuthScreen({ navigation, route }) {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const fields = useRef({});
   const { busy, run } = useSubmission();
@@ -168,7 +176,7 @@ export function AuthScreen({ navigation, route }) {
             error={fieldErrors.name}
             maxLength={LIMITS.name}
             editable={!busy}
-            placeholder="e.g. Alex Khan"
+            placeholder="e.g. Fahad Hussain"
             value={name}
             onChangeText={change("name", setName)}
             autoComplete="name"
@@ -185,7 +193,7 @@ export function AuthScreen({ navigation, route }) {
           editable={!busy}
           value={email}
           onChangeText={change("email", setEmail)}
-          placeholder="e.g. fa25-bcs-000@isbstudent.comsats.edu.pk"
+          placeholder="e.g. sp23-bse-011@isbstudent.comsats.edu.pk"
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
@@ -205,7 +213,7 @@ export function AuthScreen({ navigation, route }) {
           editable={!busy}
           placeholder={
             register
-              ? "Choose a password (8+ characters)"
+              ? "Minimum 8 characters"
               : "Enter your password"
           }
           value={password}
@@ -214,6 +222,22 @@ export function AuthScreen({ navigation, route }) {
           autoCapitalize="none"
           autoCorrect={false}
           autoComplete={register ? "new-password" : "current-password"}
+          rightAccessory={
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                showPassword ? "Hide password" : "Show password"
+              }
+              onPress={() => setShowPassword((old) => !old)}
+              style={{ padding: 6 }}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color={C.textMuted}
+              />
+            </Pressable>
+          }
           onSubmitEditing={
             register ? () => fields.current.confirmation?.focus() : submit
           }
@@ -226,22 +250,34 @@ export function AuthScreen({ navigation, route }) {
             }}
             value={confirmation}
             onChangeText={change("confirmation", setConfirmation)}
-            placeholder="Enter your password again"
+            placeholder="Re-enter your password"
             error={fieldErrors.confirmation}
-            secureTextEntry={!showPassword}
+            secureTextEntry={!showConfirmation}
             autoCapitalize="none"
             autoCorrect={false}
             editable={!busy}
             autoComplete="new-password"
+            rightAccessory={
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  showConfirmation
+                    ? "Hide confirm password"
+                    : "Show confirm password"
+                }
+                onPress={() => setShowConfirmation((old) => !old)}
+                style={{ padding: 6 }}
+              >
+                <Ionicons
+                  name={showConfirmation ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={C.textMuted}
+                />
+              </Pressable>
+            }
             onSubmitEditing={submit}
           />
         )}
-        <Button
-          title={showPassword ? "Hide password" : "Show password"}
-          secondary
-          disabled={busy}
-          onPress={() => setShowPassword((value) => !value)}
-        />
         <ErrorNotice message={error} />
         <Button
           title={register ? "Create account" : "Sign in"}
@@ -370,7 +406,7 @@ export function OtpScreen({ navigation, route }) {
 }
 const styles = StyleSheet.create({
   welcome: { flex: 1, backgroundColor: C.primary },
-  hero: { padding: 24, paddingTop: 70, gap: 24 },
+  hero: { padding: 24, paddingTop: 60, paddingBottom: 40, gap: 22 },
   mark: {
     backgroundColor: C.secondary,
     padding: 15,
@@ -393,11 +429,40 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     paddingVertical: 12,
   },
-  emailRow: {
+  trustBadge: {
     flexDirection: "row",
-    gap: 12,
-    backgroundColor: C.primaryLight,
-    borderRadius: 26,
-    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: "rgba(255, 255, 255, 0.14)",
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignSelf: "center",
+  },
+  trustBadgeText: {
+    color: "#D0DCE3",
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 0.2,
+  },
+  loginLink: {
+    alignSelf: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  loginLinkText: {
+    color: "#D0DCE3",
+    fontSize: 13,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  loginLinkHighlight: {
+    color: C.secondary,
+    fontWeight: "700",
+    textDecorationLine: "underline",
   },
 });

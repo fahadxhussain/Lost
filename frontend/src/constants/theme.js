@@ -6,7 +6,7 @@ export const COLORS = {
   cardBg: "#FFFEFA",
   text: "#0B3048",
   textMuted: "#546974",
-  placeholder: "#87949B",
+  placeholder: "#95A8B5",
   border: "#D6DCD9",
   soft: "#E5E9E3",
   track: "#E3E5DF",

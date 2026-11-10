@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { StatusBar, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Pressable from "../components/TouchTarget";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -57,43 +58,110 @@ function Header({ navigation, route, options, back }) {
   return (
     <View
       style={{
-        backgroundColor: C.cardBg,
-        paddingTop: insets.top + 12,
+        backgroundColor: C.primary,
+        paddingTop: insets.top + 10,
         paddingBottom: 16,
-        paddingHorizontal: 24,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
+        paddingHorizontal: 20,
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        overflow: "hidden",
+        position: "relative",
       }}
     >
+      <StatusBar barStyle="light-content" backgroundColor={C.primary} />
+      {/* Exactly two translucent decorative elements in the header */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          right: -10,
+          top: -10,
+          width: 76,
+          height: 76,
+          borderRadius: 38,
+          backgroundColor: "rgba(255, 255, 255, 0.06)",
+          borderWidth: 1,
+          borderColor: "rgba(255, 255, 255, 0.10)",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Ionicons name="sparkles" size={28} color="rgba(185, 241, 47, 0.18)" />
+      </View>
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: "42%",
+          bottom: -16,
+          width: 52,
+          height: 52,
+          borderRadius: 26,
+          backgroundColor: "rgba(185, 241, 47, 0.05)",
+          borderWidth: 1,
+          borderColor: "rgba(185, 241, 47, 0.10)",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Ionicons name="heart" size={20} color="rgba(185, 241, 47, 0.15)" />
+      </View>
+
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         {back ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
             onPress={navigation.goBack}
-            style={{ padding: 10 }}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: "rgba(255, 255, 255, 0.14)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <Icon name="arrow-back" />
+            <Ionicons name="arrow-back" size={20} color="#FFFEFA" />
           </Pressable>
         ) : (
           <View
             style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
               backgroundColor: C.secondary,
-              padding: 11,
-              borderRadius: 22,
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            <Icon name="scan-outline" />
+            <Ionicons name="scan-outline" size={20} color={C.primary} />
           </View>
         )}
         <View style={{ flex: 1 }}>
           <Text
-            style={[s.cardTitle, { fontSize: route.name === "Feed" ? 23 : 19 }]}
+            style={[
+              s.cardTitle,
+              {
+                color: "#FFFEFA",
+                fontSize: route.name === "Feed" ? 22 : 18,
+                fontWeight: "700",
+              },
+            ]}
           >
             {options.title || route.name}
           </Text>
           {route.name === "Feed" && (
-            <Text style={[s.eyebrow, { marginTop: 3 }]}>YOUR CAMPUS · CUI</Text>
+            <Text
+              style={[
+                s.eyebrow,
+                { color: C.secondary, marginTop: 2, letterSpacing: 0.8 },
+              ]}
+            >
+              YOUR CAMPUS · CUI
+            </Text>
           )}
         </View>
         {user && (
@@ -101,21 +169,38 @@ function Header({ navigation, route, options, back }) {
             accessibilityRole="button"
             accessibilityLabel={`Notifications, ${count} unread`}
             onPress={() => navigation.navigate("Notifications")}
-            style={{ padding: 10 }}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: "rgba(255, 255, 255, 0.14)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <Icon name="notifications-outline" />
+            <Ionicons name="notifications-outline" size={20} color="#FFFEFA" />
             {count > 0 && (
               <View
                 style={{
                   position: "absolute",
-                  right: 0,
-                  top: 0,
+                  right: 2,
+                  top: 2,
                   backgroundColor: C.secondary,
-                  borderRadius: 10,
+                  borderRadius: 9,
+                  minWidth: 16,
+                  height: 16,
                   paddingHorizontal: 4,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <Text style={{ color: C.primary, fontSize: 10 }}>
+                <Text
+                  style={{
+                    color: C.primary,
+                    fontSize: 10,
+                    fontWeight: "800",
+                  }}
+                >
                   {count > 99 ? "99+" : count}
                 </Text>
               </View>

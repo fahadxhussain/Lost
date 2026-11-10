@@ -1,7 +1,11 @@
 import React, { forwardRef, useState } from "react";
 import { Platform, Pressable } from "react-native";
-import * as Haptics from "expo-haptics";
 import { COLORS as C } from "../constants/theme";
+
+let Haptics = null;
+try {
+  Haptics = require("expo-haptics");
+} catch {}
 
 // Keep feedback consistent for tabs, buttons, filters, and tappable cards.
 const TouchTarget = forwardRef(function TouchTarget(
@@ -34,7 +38,7 @@ const TouchTarget = forwardRef(function TouchTarget(
       }}
       onPress={(event) => {
         if (disabled || !onPress) return;
-        if (Platform.OS !== "web") {
+        if (Platform.OS !== "web" && Haptics) {
           const feedback =
             haptic === "light"
               ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
