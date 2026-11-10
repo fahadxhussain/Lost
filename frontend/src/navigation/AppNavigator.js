@@ -2,7 +2,11 @@ import React, { useEffect, useState } from "react";
 import { StatusBar, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Pressable from "../components/TouchTarget";
-import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  DefaultTheme,
+  createNavigationContainerRef,
+} from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,6 +37,20 @@ import ReportChoiceScreen from "../screens/ReportChoiceScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import { useKeyboardVisible } from "../hooks/useKeyboardVisible";
 
+const navigationRef = createNavigationContainerRef();
+const TAB_ITEMS = [
+  { name: "Feed", options: { title: "Lost & Found", tabBarLabel: "Feed" } },
+  {
+    name: "Watchlist",
+    options: { title: "Active watches", tabBarLabel: "Watchlist" },
+  },
+  { name: "Messages", options: { title: "Messages" } },
+  {
+    name: "MyItems",
+    options: { title: "My Reports", tabBarLabel: "My Reports" },
+  },
+  { name: "Profile", options: { title: "Profile" } },
+];
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 function Header({ navigation, route, options, back }) {
@@ -305,6 +323,7 @@ export default function AppNavigator() {
     );
   return (
     <NavigationContainer
+      ref={navigationRef}
       theme={{
         ...DefaultTheme,
         colors: {
@@ -317,98 +336,144 @@ export default function AppNavigator() {
         },
       }}
     >
-      <Stack.Navigator
-        screenOptions={{
-          header: (props) => <Header {...props} />,
-          headerStyle: { backgroundColor: C.primary },
-          contentStyle: { backgroundColor: C.background },
-        }}
-      >
-        {user ? (
-          <Stack.Group navigationKey="student">
-            <Stack.Screen
-              name="Main"
-              component={MainTabs}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Report"
-              component={ReportChoiceScreen}
-              options={{ title: "Report" }}
-            />
-            <Stack.Screen
-              name="CreateReport"
-              component={ReportScreen}
-              options={({ route }) => ({
-                title:
-                  route.params?.type === "LOST"
-                    ? "Report a lost item"
-                    : "Report a found item",
-              })}
-            />
-            <Stack.Screen
-              name="Details"
-              component={DetailsScreen}
-              options={{ title: "Item details" }}
-            />
-            <Stack.Screen
-              name="EditReport"
-              component={ReportScreen}
-              options={{ title: "Edit report" }}
-            />
-            <Stack.Screen
-              name="Matches"
-              component={MatchesScreen}
-              options={{ title: "Potential matches" }}
-            />
-            <Stack.Screen
-              name="Notifications"
-              component={NotificationsScreen}
-            />
-            <Stack.Screen
-              name="Conversations"
-              component={ConversationsScreen}
-              options={{ title: "Messages" }}
-            />
-            <Stack.Screen
-              name="Chat"
-              component={ChatScreen}
-              options={({ route }) => ({
-                title: route.params?.name || "Conversation",
-              })}
-            />
-          </Stack.Group>
-        ) : (
-          <Stack.Group navigationKey="guest">
-            <Stack.Screen
-              name="Welcome"
-              component={WelcomeScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ForgotPassword"
-              component={ForgotPasswordScreen}
-              options={{ title: "Reset password" }}
-            />
-            <Stack.Screen
-              name="Register"
-              component={AuthScreen}
-              options={{ title: "Create account" }}
-            />
-            <Stack.Screen
-              name="Login"
-              component={AuthScreen}
-              options={{ title: "Sign in" }}
-            />
-            <Stack.Screen
-              name="VerifyOtp"
-              component={OtpScreen}
-              options={{ title: "Verify your email" }}
-            />
-          </Stack.Group>
-        )}
-      </Stack.Navigator>
+      <View style={{ flex: 1 }}>
+        <Stack.Navigator
+          screenOptions={{
+            header: (props) => <Header {...props} />,
+            headerStyle: { backgroundColor: C.primary },
+            contentStyle: { backgroundColor: C.background },
+          }}
+        >
+          {user ? (
+            <Stack.Group navigationKey="student">
+              <Stack.Screen
+                name="Main"
+                component={MainTabs}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="Report"
+                component={ReportChoiceScreen}
+                options={{ title: "Report" }}
+              />
+              <Stack.Screen
+                name="CreateReport"
+                component={ReportScreen}
+                options={({ route }) => ({
+                  title:
+                    route.params?.type === "LOST"
+                      ? "Report a lost item"
+                      : "Report a found item",
+                })}
+              />
+              <Stack.Screen
+                name="Details"
+                component={DetailsScreen}
+                options={{ title: "Item details" }}
+              />
+              <Stack.Screen
+                name="EditReport"
+                component={ReportScreen}
+                options={{ title: "Edit report" }}
+              />
+              <Stack.Screen
+                name="Matches"
+                component={MatchesScreen}
+                options={{ title: "Potential matches" }}
+              />
+              <Stack.Screen
+                name="Notifications"
+                component={NotificationsScreen}
+              />
+              <Stack.Screen
+                name="Conversations"
+                component={ConversationsScreen}
+                options={{ title: "Messages" }}
+              />
+              <Stack.Screen
+                name="Chat"
+                component={ChatScreen}
+                options={({ route }) => ({
+                  title: route.params?.name || "Conversation",
+                })}
+              />
+            </Stack.Group>
+          ) : (
+            <Stack.Group navigationKey="guest">
+              <Stack.Screen
+                name="Welcome"
+                component={WelcomeScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="ForgotPassword"
+                component={ForgotPasswordScreen}
+                options={{ title: "Reset password" }}
+              />
+              <Stack.Screen
+                name="Register"
+                component={AuthScreen}
+                options={{ title: "Create account" }}
+              />
+              <Stack.Screen
+                name="Login"
+                component={AuthScreen}
+                options={{ title: "Sign in" }}
+              />
+              <Stack.Screen
+                name="VerifyOtp"
+                component={OtpScreen}
+                options={{ title: "Verify your email" }}
+              />
+            </Stack.Group>
+          )}
+        </Stack.Navigator>
+        {user && <StackTabBar navigationRef={navigationRef} />}
+      </View>
     </NavigationContainer>
+  );
+}
+// Shows the same floating tab bar on every screen outside the tab navigator.
+function StackTabBar({ navigationRef }) {
+  const insets = useSafeAreaInsets();
+  const [current, setCurrent] = useState({ screen: "Main", tab: 0 });
+  useEffect(() => {
+    const update = () => {
+      if (navigationRef.isReady && !navigationRef.isReady()) return;
+      const root = navigationRef.getRootState?.();
+      if (!root) return;
+      const main = root.routes.find((route) => route.name === "Main");
+      setCurrent({
+        screen: root.routes[root.index]?.name,
+        tab: main?.state?.index ?? 0,
+      });
+    };
+    update();
+    return navigationRef.addListener?.("state", update);
+  }, [navigationRef]);
+  if (current.screen === "Main") return null;
+  const state = {
+    index: current.tab,
+    routes: TAB_ITEMS.map(({ name }) => ({ key: name, name })),
+  };
+  const descriptors = Object.fromEntries(
+    TAB_ITEMS.map(({ name, options }) => [name, { options }]),
+  );
+  const tabNavigation = {
+    emit: () => ({ defaultPrevented: false }),
+    navigate: (name) => navigationRef.navigate("Main", { screen: name }),
+  };
+  return (
+    <View
+      style={{ height: 84 + Math.max(insets.bottom, 8) }}
+      pointerEvents="box-none"
+    >
+      <FloatingTabBar
+        state={state}
+        descriptors={descriptors}
+        navigation={tabNavigation}
+      />
+    </View>
   );
 }
 const navStyles = StyleSheet.create({

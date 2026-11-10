@@ -93,7 +93,7 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(config.port, () => {
+server.listen(config.port, '0.0.0.0', () => {
   logger.info(`COMSATS Lost & Found API server running on port ${config.port} in ${config.nodeEnv} mode`);
 });
 

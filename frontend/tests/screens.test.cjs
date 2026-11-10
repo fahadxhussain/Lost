@@ -226,6 +226,10 @@ function harness() {
             return {
               useFocusEffect: (effect) => React.useEffect(effect, [effect]),
               NavigationContainer: "NavigationContainer",
+              createNavigationContainerRef: () => ({
+                navigate() {},
+                getRootState: () => undefined,
+              }),
               DefaultTheme: { colors: {} },
             };
           if (name === "@react-navigation/native-stack")
