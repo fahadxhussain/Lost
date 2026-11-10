@@ -308,8 +308,6 @@ export default function AppNavigator() {
         screenOptions={{
           header: (props) => <Header {...props} />,
           contentStyle: { backgroundColor: C.background },
-          animation: "slide_from_right",
-          animationDuration: 280,
         }}
       >
         {user ? (

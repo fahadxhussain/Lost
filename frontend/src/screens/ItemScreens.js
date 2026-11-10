@@ -11,7 +11,6 @@ import {
   DetailsSkeleton,
   Empty,
   ErrorNotice,
-  FadeInView,
   Notice,
   ModalScreen,
   Photo,
@@ -205,9 +204,8 @@ export function DetailsScreen({ navigation, route }) {
       <ErrorNotice message={resource.error} onRetry={() => resource.reload()} />
       {resource.loading && !report && <DetailsSkeleton />}
       {report && (
-        <FadeInView>
-          <>
-            <Photo uri={report.imageUrl} style={{ height: 240 }} />
+        <>
+          <Photo uri={report.imageUrl} style={{ height: 240 }} />
             <Text style={s.eyebrow}>
               {report.type} · {report.status}
             </Text>
@@ -291,8 +289,7 @@ export function DetailsScreen({ navigation, route }) {
               />
             )}
             <Text style={s.label}>Submitted {formatDate(report.createdAt)}</Text>
-          </>
-        </FadeInView>
+        </>
       )}
     </Screen>
   );
