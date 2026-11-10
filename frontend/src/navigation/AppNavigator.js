@@ -74,7 +74,11 @@ function Header({ navigation, route, options, back }) {
         position: "relative",
       }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={C.primary} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
       {/* Subtle lost item accents in header background */}
       <View
         pointerEvents="none"
@@ -232,6 +236,7 @@ function MainTabs({ navigation }) {
         tabBar={(props) => <FloatingTabBar {...props} />}
         screenOptions={{
           header: (props) => <Header {...props} />,
+          headerStyle: { backgroundColor: C.primary },
           sceneStyle: { backgroundColor: C.background },
           tabBarHideOnKeyboard: true,
           tabBarStyle: { height: 84 + Math.max(insets.bottom, 8) },
@@ -306,6 +311,7 @@ export default function AppNavigator() {
       <Stack.Navigator
         screenOptions={{
           header: (props) => <Header {...props} />,
+          headerStyle: { backgroundColor: C.primary },
           contentStyle: { backgroundColor: C.background },
         }}
       >

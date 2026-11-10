@@ -36,8 +36,12 @@ export default function App() {
   }
   return (
     <SafeAreaProvider>
-      <KeyboardProvider preload={false}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.cardBg} />
+      <KeyboardProvider preload={false} statusBarTranslucent>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="transparent"
+          translucent
+        />
         <AuthProvider>
           <AppNavigator />
         </AuthProvider>

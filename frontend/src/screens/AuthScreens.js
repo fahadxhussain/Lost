@@ -22,7 +22,11 @@ export function WelcomeScreen({ navigation }) {
   const { sessionNotice } = useAuth();
   return (
     <SafeAreaView style={styles.welcome}>
-      <StatusBar barStyle="light-content" backgroundColor={C.primary} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
       <TranslucentDecorations />
       <ScrollView
         contentContainerStyle={styles.hero}
