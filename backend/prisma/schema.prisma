@@ -1,0 +1,199 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+}
+
+enum ReportType {
+  LOST
+  FOUND
+}
+
+enum ReportStatus {
+  ACTIVE
+  RESOLVED
+  CLOSED
+}
+
+enum MatchStatus {
+  PENDING
+  CONFIRMED
+  DISMISSED
+}
+
+enum JobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id               String       @id @default(uuid())
+  email            String       @unique
+  passwordHash     String       @map("password_hash")
+  name             String?
+  rollNumber       String?      @map("roll_number")
+  status           UserStatus   @default(PENDING_VERIFICATION)
+  emailVerifiedAt  DateTime?    @map("email_verified_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  reports          Report[]
+  otps             EmailVerificationOtp[]
+  notifications    Notification[]
+  messagesSent     Message[]    @relation("SentMessages")
+  conversations1   Conversation[] @relation("ParticipantOne")
+  conversations2   Conversation[] @relation("ParticipantTwo")
+
+  @@map("users")
+}
+
+model EmailVerificationOtp {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  otpHash      String    @map("otp_hash")
+  expiresAt    DateTime  @map("expires_at")
+  attemptCount Int       @default(0) @map("attempt_count")
+  consumedAt   DateTime? @map("consumed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("email_verification_otps")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  icon      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  reports   Report[]
+
+  @@map("categories")
+}
+
+model Report {
+  id               String       @id @default(uuid())
+  userId           String       @map("user_id")
+  type             ReportType
+  categoryId       String       @map("category_id")
+  title            String
+  description      String       @db.Text
+  imageUrl         String?      @map("image_url")
+  incidentLocation String?      @map("incident_location")
+  incidentDate     DateTime?    @map("incident_date")
+  status           ReportStatus @default(ACTIVE)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category         Category     @relation(fields: [categoryId], references: [id])
+
+  lostMatches      PotentialMatch[] @relation("LostReportMatches")
+  foundMatches     PotentialMatch[] @relation("FoundReportMatches")
+  matchingJobs     MatchingJob[]
+
+  @@index([type, status, categoryId])
+  @@index([status, createdAt])
+  @@index([userId])
+  @@map("reports")
+}
+
+model PotentialMatch {
+  id            String      @id @default(uuid())
+  lostReportId  String      @map("lost_report_id")
+  foundReportId String      @map("found_report_id")
+  score         Float
+  aiReasoning   String?     @db.Text @map("ai_reasoning")
+  status        MatchStatus @default(PENDING)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  lostReport    Report      @relation("LostReportMatches", fields: [lostReportId], references: [id], onDelete: Cascade)
+  foundReport   Report      @relation("FoundReportMatches", fields: [foundReportId], references: [id], onDelete: Cascade)
+  conversation  Conversation?
+
+  @@unique([lostReportId, foundReportId])
+  @@index([lostReportId])
+  @@index([foundReportId])
+  @@map("potential_matches")
+}
+
+model MatchingJob {
+  id             String    @id @default(uuid())
+  sourceReportId String    @map("source_report_id")
+  status         JobStatus @default(QUEUED)
+  attempts       Int       @default(0)
+  errorMessage   String?   @db.Text @map("error_message")
+  lockedAt       DateTime? @map("locked_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  sourceReport   Report    @relation(fields: [sourceReportId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("matching_jobs")
+}
+
+model Conversation {
+  id               String          @id @default(uuid())
+  matchId          String?         @unique @map("match_id")
+  participantOneId String          @map("participant_one_id")
+  participantTwoId String          @map("participant_two_id")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  match            PotentialMatch? @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  participantOne   User            @relation("ParticipantOne", fields: [participantOneId], references: [id], onDelete: Cascade)
+  participantTwo   User            @relation("ParticipantTwo", fields: [participantTwoId], references: [id], onDelete: Cascade)
+  messages         Message[]
+
+  @@index([participantOneId])
+  @@index([participantTwoId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  senderId       String       @map("sender_id")
+  content        String       @db.Text
+  isRead         Boolean      @default(false) @map("is_read")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  body      String
+  metadata  Json?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
