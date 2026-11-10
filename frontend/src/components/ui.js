@@ -19,6 +19,7 @@ import { HeaderHeightContext } from "@react-navigation/elements";
 import { COLORS as C } from "../constants/theme";
 import { formatDate } from "../utils/reports";
 import Pressable from "./TouchTarget";
+import KeyboardFormScrollView from "./KeyboardFormScrollView";
 
 export function Icon({ name, size = 22, color = C.primary }) {
   return <Ionicons name={name} size={size} color={color} />;
@@ -285,9 +286,21 @@ export function Screen({
   scroll = true,
   contentInsetAdjustmentBehavior = "automatic",
   keyboardVerticalOffset,
+  keyboardAware = false,
   contentStyle,
 }) {
   const headerHeight = React.useContext(HeaderHeightContext) || 0;
+  if (scroll)
+    return (
+      <KeyboardFormScrollView
+        style={s.page}
+        contentInsetAdjustmentBehavior={contentInsetAdjustmentBehavior}
+        contentContainerStyle={[s.content, contentStyle]}
+      >
+        {children}
+      </KeyboardFormScrollView>
+    );
+  if (keyboardAware) return <View style={s.page}>{children}</View>;
   return (
     <KeyboardAvoidingView
       style={s.page}
@@ -298,17 +311,7 @@ export function Screen({
         Platform.OS === "ios" ? (keyboardVerticalOffset ?? headerHeight) : 0
       }
     >
-      {scroll ? (
-        <ScrollView
-          contentInsetAdjustmentBehavior={contentInsetAdjustmentBehavior}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[s.content, contentStyle]}
-        >
-          {children}
-        </ScrollView>
-      ) : (
-        children
-      )}
+      {children}
     </KeyboardAvoidingView>
   );
 }
@@ -340,6 +343,7 @@ export const DataList = React.forwardRef(function DataList(
     estimatedItemSize = 140,
     ListHeaderComponent,
     ListFooterComponent,
+    keyboardAware = false,
     ...props
   },
   ref,
@@ -348,6 +352,9 @@ export const DataList = React.forwardRef(function DataList(
     <View style={s.listFrame}>
       <FlashList
         ref={ref}
+        renderScrollComponent={
+          keyboardAware ? KeyboardFormScrollView : undefined
+        }
         estimatedItemSize={estimatedItemSize}
         keyExtractor={itemKey}
         contentContainerStyle={s.listContent}

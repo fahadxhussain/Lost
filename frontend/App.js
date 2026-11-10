@@ -3,6 +3,7 @@ import { ActivityIndicator, StatusBar, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AuthProvider } from "./src/context/AuthContext";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { COLORS } from "./src/constants/theme";
@@ -35,10 +36,12 @@ export default function App() {
   }
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.cardBg} />
-      <AuthProvider>
-        <AppNavigator />
-      </AuthProvider>
+      <KeyboardProvider preload={false}>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.cardBg} />
+        <AuthProvider>
+          <AppNavigator />
+        </AuthProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

@@ -142,6 +142,7 @@ function harness() {
       "KeyboardAvoidingView",
       "Image",
       "ActivityIndicator",
+      "StatusBar",
       "Modal",
     ].map((name) => [name, name]),
   );
@@ -246,6 +247,12 @@ function harness() {
             return { useHeaderHeight: () => 96, HeaderHeightContext };
           if (name === "@expo/vector-icons") return { Ionicons: "Icon" };
           if (name === "expo-image") return { Image: "CachedImage" };
+          if (name === "expo-font") return { useFonts: () => [true, null] };
+          if (name === "react-native-keyboard-controller")
+            return {
+              KeyboardAwareScrollView: "KeyboardAwareScrollView",
+              KeyboardProvider: "KeyboardProvider",
+            };
           if (name === "@shopify/flash-list") return { FlashList };
           if (name === "react-native-safe-area-context")
             return {
@@ -273,7 +280,7 @@ function harness() {
             };
           if (name.endsWith("/services/api")) return api;
           if (name.endsWith("/context/AuthContext"))
-            return { useAuth: () => auth };
+            return { useAuth: () => auth, AuthProvider: "AuthProvider" };
           if (name.endsWith("/hooks/useResource"))
             return {
               useResource: () => ({
@@ -638,7 +645,7 @@ test("match explanation opens with modal safe areas and contacts the correct mat
   const edges = tree.root.findByType("SafeAreaView").props.edges;
   assert.ok(edges.includes("top") && edges.includes("bottom"));
   const modalScroll = tree.root
-    .findAllByType("ScrollView")
+    .findAllByType("KeyboardAwareScrollView")
     .find((node) => !node.props.horizontal);
   assert.equal(modalScroll.props.contentInsetAdjustmentBehavior, "never");
   await act(async () => {
@@ -1547,24 +1554,107 @@ test("Android chat relies on window resize and removes bottom safe-area spacing 
   act(() => tree.unmount());
 });
 
-test("shared form keyboard handling uses the iOS header height and no inherited header offset inside modals", async () => {
+test("forms and modals auto-scroll focused fields with a small keyboard gap and no double keyboard adjustment", async () => {
   const h = harness();
-  h.native.Platform.OS = "ios";
   const { Screen, ModalScreen } = h.load("src/components/ui.js");
   let tree;
+  for (const platform of ["android", "ios"]) {
+    h.native.Platform.OS = platform;
+    for (const Component of [Screen, ModalScreen]) {
+      await act(async () => {
+        tree = renderer.create(React.createElement(Component));
+      });
+      const keyboardView = tree.root.findByType("KeyboardAwareScrollView");
+      assert.equal(keyboardView.props.bottomOffset, 12);
+      assert.equal(keyboardView.props.disableScrollOnKeyboardHide, true);
+      assert.equal(keyboardView.props.automaticallyAdjustKeyboardInsets, false);
+      assert.equal(tree.root.findAllByType("KeyboardAvoidingView").length, 0);
+      act(() => tree.unmount());
+    }
+  }
+});
+
+test("lower registration and report fields are inside the keyboard-aware scrolling container", async () => {
+  const h = harness();
+  const { AuthScreen } = h.load("src/screens/AuthScreens.js");
+  const Report = h.load("src/screens/ReportScreen.js").default;
+  let tree;
   await act(async () => {
-    tree = renderer.create(React.createElement(Screen));
+    tree = renderer.create(
+      React.createElement(AuthScreen, {
+        navigation: h.navigation,
+        route: { name: "Register" },
+      }),
+    );
   });
-  let keyboardView = tree.root.findByType("KeyboardAvoidingView");
-  assert.equal(keyboardView.props.enabled, true);
-  assert.equal(keyboardView.props.behavior, "padding");
-  assert.equal(keyboardView.props.keyboardVerticalOffset, 96);
+  let form = tree.root.findByType("KeyboardAwareScrollView");
+  assert.ok(
+    form
+      .findAllByType("TextInput")
+      .some((field) => field.props.accessibilityLabel === "Confirm password"),
+  );
+  assert.equal(form.props.bottomOffset, 12);
   act(() => tree.unmount());
   await act(async () => {
-    tree = renderer.create(React.createElement(ModalScreen));
+    tree = renderer.create(
+      React.createElement(Report, {
+        navigation: h.navigation,
+        route: { params: { type: "LOST" } },
+      }),
+    );
   });
-  keyboardView = tree.root.findByType("KeyboardAvoidingView");
-  assert.equal(keyboardView.props.keyboardVerticalOffset, 0);
+  form = tree.root.findByType("KeyboardAwareScrollView");
+  assert.ok(
+    form
+      .findAllByType("TextInput")
+      .some((field) => field.props.accessibilityLabel === "Date lost"),
+  );
+  assert.ok(
+    form.findAllByType("TextInput").some((field) => field.props.multiline),
+  );
+  act(() => tree.unmount());
+});
+
+test("feed search uses a keyboard-aware virtualized scroller without a second avoidance wrapper", async () => {
+  const h = harness();
+  h.api.reportsApi.getAll = async () => ({
+    data: { data: [], pagination: { page: 1, totalPages: 0 } },
+  });
+  const Feed = h.load("src/screens/FeedScreen.js").default;
+  let tree, scroller;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(Feed, { navigation: h.navigation }),
+    );
+  });
+  assert.equal(tree.root.findAllByType("KeyboardAvoidingView").length, 0);
+  const renderScroll =
+    tree.root.findByType("FlashList").props.renderScrollComponent;
+  await act(async () => {
+    scroller = renderer.create(
+      React.createElement(renderScroll, { testID: "search-scroller" }),
+    );
+  });
+  assert.equal(
+    scroller.root.findByType("KeyboardAwareScrollView").props.bottomOffset,
+    12,
+  );
+  act(() => {
+    scroller.unmount();
+    tree.unmount();
+  });
+});
+
+test("app mounts the keyboard provider around navigation without preloading the keyboard", async () => {
+  const h = harness();
+  const App = h.load("App.js").default;
+  let tree;
+  await act(async () => {
+    tree = renderer.create(React.createElement(App));
+  });
+  const provider = tree.root.findByType("KeyboardProvider");
+  assert.equal(provider.props.preload, false);
+  assert.equal(provider.findAllByType("NavigationContainer").length, 1);
   act(() => tree.unmount());
 });
 

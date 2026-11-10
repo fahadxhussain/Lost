@@ -180,8 +180,9 @@ export default function FeedScreen({ navigation }) {
     </View>
   );
   return (
-    <Screen scroll={false}>
+    <Screen scroll={false} keyboardAware>
       <DataList
+        keyboardAware
         data={reports}
         estimatedItemSize={126}
         keyboardShouldPersistTaps="handled"
