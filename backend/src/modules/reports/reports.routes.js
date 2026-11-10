@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const reportsController = require('./reports.controller');
+const searchController = require('../search/search.controller');
 const { authenticate, requireActiveStudent } = require('../../middleware/auth');
 const { upload } = require('../../services/storage/storageService');
+
+// Search reports (Pure PostgreSQL, keyword & category filters)
+router.get('/search', searchController.searchReports);
 
 // Create report (requires active verified student & optional image file)
 router.post(
