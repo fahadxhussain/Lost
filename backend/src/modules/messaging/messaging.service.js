@@ -136,10 +136,15 @@ class MessagingService {
       data: { isRead: true },
     });
 
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const take = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+    const skip = (pageNum - 1) * take;
+
     const messages = await prisma.message.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
-      take: Math.min(100, Math.max(1, parseInt(limit, 10) || 50)),
+      skip,
+      take,
       select: {
         id: true,
         conversationId: true,
