@@ -1,76 +1,62 @@
 import React, { memo } from "react";
-import { StyleSheet, View } from "react-native";
+import { Dimensions, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Floating translucent elements symbolizing lost campus items, community care, and compassion.
-// The upper header area has exactly two subtle elements placed randomly; the rest are distributed below.
-const ELEMENTS = [
-  // Upper header area (exactly two random subtle elements)
-  { id: "h1", icon: "sparkles", top: "8%", right: "8%", size: 22, rotate: "24deg", color: "rgba(185, 241, 47, 0.18)", bg: "rgba(185, 241, 47, 0.07)" },
-  { id: "h2", icon: "key-outline", top: "18%", right: "6%", size: 26, rotate: "-18deg", color: "rgba(255, 255, 255, 0.13)", bg: "rgba(255, 255, 255, 0.05)" },
+const { width: W, height: H } = Dimensions.get("window");
 
-  // Mid & lower canvas elements
-  { id: "3", icon: "phone-portrait-outline", top: "28%", left: "5%", size: 28, rotate: "12deg", color: "rgba(255, 255, 255, 0.11)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "4", icon: "shield-checkmark-outline", top: "33%", right: "12%", size: 26, rotate: "-10deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "5", icon: "laptop-outline", top: "39%", left: "8%", size: 30, rotate: "-15deg", color: "rgba(185, 241, 47, 0.14)", bg: "rgba(185, 241, 47, 0.06)" },
-  { id: "6", icon: "heart", top: "43%", right: "7%", size: 24, rotate: "20deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.07)" },
-  { id: "7", icon: "watch-outline", top: "48%", left: "16%", size: 26, rotate: "28deg", color: "rgba(255, 255, 255, 0.11)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "8", icon: "glasses-outline", top: "52%", right: "16%", size: 30, rotate: "-14deg", color: "rgba(185, 241, 47, 0.15)", bg: "rgba(185, 241, 47, 0.06)" },
-  { id: "9", icon: "card-outline", top: "57%", left: "6%", size: 26, rotate: "-22deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "10", icon: "bag-outline", top: "62%", right: "8%", size: 28, rotate: "16deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "11", icon: "heart-outline", top: "67%", left: "14%", size: 24, rotate: "10deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.07)" },
-  { id: "12", icon: "headset-outline", top: "71%", right: "14%", size: 30, rotate: "-25deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "13", icon: "book-outline", top: "76%", left: "7%", size: 26, rotate: "-8deg", color: "rgba(255, 255, 255, 0.11)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "14", icon: "wallet-outline", top: "80%", right: "7%", size: 26, rotate: "20deg", color: "rgba(185, 241, 47, 0.14)", bg: "rgba(185, 241, 47, 0.06)" },
-  { id: "15", icon: "umbrella-outline", top: "85%", left: "16%", size: 28, rotate: "12deg", color: "rgba(255, 255, 255, 0.11)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "16", icon: "hand-left-outline", top: "88%", right: "18%", size: 24, rotate: "-15deg", color: "rgba(185, 241, 47, 0.15)", bg: "rgba(185, 241, 47, 0.06)" },
-  { id: "17", icon: "gift-outline", top: "92%", left: "8%", size: 26, rotate: "22deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
-  { id: "18", icon: "people-outline", top: "96%", right: "10%", size: 28, rotate: "-6deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.07)" },
+// Floating translucent background elements with explicit pixel coordinates.
+// Strictly NO clutter at the top status bar/header area: only 2 subtle elements in the upper quadrant,
+// and the rest tastefully placed along the sides to frame the centered content.
+const DECORATIONS = [
+  // Upper area (subtle accents away from the center logo)
+  { id: "1", icon: "sparkles", x: W * 0.84, y: H * 0.08, size: 20, rotate: "22deg", color: "rgba(185, 241, 47, 0.22)", bg: "rgba(185, 241, 47, 0.08)" },
+  { id: "2", icon: "key-outline", x: W * 0.08, y: H * 0.14, size: 22, rotate: "-20deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
+
+  // Mid canvas (framing the content on left & right margins)
+  { id: "3", icon: "laptop-outline", x: W * 0.06, y: H * 0.28, size: 26, rotate: "15deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.06)" },
+  { id: "4", icon: "phone-portrait-outline", x: W * 0.86, y: H * 0.32, size: 24, rotate: "-15deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
+  { id: "5", icon: "heart", x: W * 0.07, y: H * 0.44, size: 20, rotate: "10deg", color: "rgba(185, 241, 47, 0.18)", bg: "rgba(185, 241, 47, 0.07)" },
+  { id: "6", icon: "glasses-outline", x: W * 0.85, y: H * 0.46, size: 24, rotate: "-18deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
+  { id: "7", icon: "shield-checkmark-outline", x: W * 0.07, y: H * 0.58, size: 22, rotate: "16deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.06)" },
+  { id: "8", icon: "watch-outline", x: W * 0.85, y: H * 0.60, size: 22, rotate: "-12deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
+  { id: "9", icon: "headset-outline", x: W * 0.06, y: H * 0.72, size: 24, rotate: "-20deg", color: "rgba(255, 255, 255, 0.12)", bg: "rgba(255, 255, 255, 0.05)" },
+  { id: "10", icon: "bag-outline", x: W * 0.86, y: H * 0.74, size: 24, rotate: "15deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.06)" },
+  { id: "11", icon: "card-outline", x: W * 0.10, y: H * 0.86, size: 20, rotate: "10deg", color: "rgba(255, 255, 255, 0.10)", bg: "rgba(255, 255, 255, 0.04)" },
+  { id: "12", icon: "heart-outline", x: W * 0.82, y: H * 0.88, size: 20, rotate: "-10deg", color: "rgba(185, 241, 47, 0.16)", bg: "rgba(185, 241, 47, 0.06)" },
 ];
 
 function TranslucentDecorations() {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-      {ELEMENTS.map((el) => {
-        const posStyle = {
-          position: "absolute",
-          top: el.top,
-          left: el.left,
-          right: el.right,
-          transform: [{ rotate: el.rotate }],
-        };
-        return (
-          <View
-            key={el.id}
-            style={[
-              posStyle,
-              styles.badge,
-              {
-                backgroundColor: el.bg,
-                borderColor: el.color,
-              },
-            ]}
-          >
-            <Ionicons name={el.icon} size={el.size} color={el.color} />
-          </View>
-        );
-      })}
+      {DECORATIONS.map((el) => (
+        <View
+          key={el.id}
+          style={[
+            styles.badge,
+            {
+              left: el.x,
+              top: el.y,
+              backgroundColor: el.bg,
+              borderColor: el.color,
+              transform: [{ rotate: el.rotate }],
+            },
+          ]}
+        >
+          <Ionicons name={el.icon} size={el.size} color={el.color} />
+        </View>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
-    padding: 9,
-    borderRadius: 22,
+    position: "absolute",
+    padding: 8,
+    borderRadius: 20,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 1,
   },
 });
 
