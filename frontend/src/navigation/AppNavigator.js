@@ -234,7 +234,16 @@ function MainTabs({ navigation }) {
           header: (props) => <Header {...props} />,
           sceneStyle: { backgroundColor: C.background },
           tabBarHideOnKeyboard: true,
-          tabBarStyle: { height: 84 + Math.max(insets.bottom, 8) },
+          tabBarStyle: {
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 84 + Math.max(insets.bottom, 8),
+            backgroundColor: "transparent",
+            borderTopWidth: 0,
+            elevation: 0,
+          },
         }}
       >
         <Tabs.Screen
