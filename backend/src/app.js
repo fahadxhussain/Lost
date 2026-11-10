@@ -15,6 +15,7 @@ const reportsRoutes = require('./modules/reports/reports.routes');
 const searchRoutes = require('./modules/search/search.routes');
 const notificationsRoutes = require('./modules/notifications/notifications.routes');
 const messagingRoutes = require('./modules/messaging/messaging.routes');
+const analyticsRoutes = require('./modules/analytics/analytics.routes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDoc = require('./docs/swagger.json');
 
@@ -65,6 +66,7 @@ app.use('/api/v1/reports', reportsRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/conversations', messagingRoutes);
+app.use('/api/v1/stats', analyticsRoutes);
 
 // Catch 404 for unhandled routes
 app.all('*', (req, res, next) => {
