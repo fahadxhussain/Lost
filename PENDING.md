@@ -38,10 +38,10 @@ This document tracks items that require confirmation, unresolved architecture po
   - [x] Argon2/Bcrypt password hashing & OTP generation
   - [x] Gating unverified accounts from protected endpoints
   - [x] JWT authentication and session handling
-- [ ] **Phase 3: Report Management & Image Handling**
-  - [ ] Create, update, view, and close LOST and FOUND reports
-  - [ ] Mandatory category and description validation
-  - [ ] Optional image upload and safe file handling
+- [x] **Phase 3: Report Management & Image Handling**
+  - [x] Create, update, view, and close LOST and FOUND reports
+  - [x] Mandatory category and description validation
+  - [x] Optional image upload and safe file handling
 - [ ] **Phase 4: Student Search**
   - [ ] PostgreSQL full-text and trigram search across reports
   - [ ] Category, type, date, and location filtering (no Gemini calls)
