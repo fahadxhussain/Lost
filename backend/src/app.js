@@ -13,6 +13,7 @@ const authRoutes = require('./modules/auth/auth.routes');
 const categoriesRoutes = require('./modules/categories/categories.routes');
 const reportsRoutes = require('./modules/reports/reports.routes');
 const searchRoutes = require('./modules/search/search.routes');
+const notificationsRoutes = require('./modules/notifications/notifications.routes');
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/reports', reportsRoutes);
 app.use('/api/v1/search', searchRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
 
 // Catch 404 for unhandled routes
 app.all('*', (req, res, next) => {
