@@ -13,6 +13,7 @@ Lost/
 ├── frontend/             # React Native (Expo) mobile application
 ├── ARCHITECTURE.md       # High-level architecture & design invariants
 ├── WORK-DIVISION.md      # Simultaneous team roadmap & API contracts
+├── AGENTS.md             # AI Agent prompt activation for Fahad & Ihtisham
 ├── PENDING.md            # Decisions log & implementation checklist
 └── README.md             # This file
 ```
