@@ -4,22 +4,27 @@
     "slug": "comsats-lost-and-found",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#003366"
+      "backgroundColor": "#0B3048"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#003366"
+        "backgroundColor": "#0B3048"
       }
     },
-    "web": {
-      "favicon": "./src/assets/favicon.png"
-    }
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a photo of your lost or found item.",
+          "cameraPermission": "Take a photo of your lost or found item."
+        }
+      ]
+    ]
   }
 }
