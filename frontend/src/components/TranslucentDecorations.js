@@ -6,9 +6,20 @@ const { width: W, height: H } = Dimensions.get("window");
 
 // Exactly 4 floating translucent elements randomly spread across the canvas (never in a line).
 const DECORATIONS = [
-  // 1. Top-right quadrant
+  // 1. Top-left (just below the header) - equal to key size
   {
     id: "1",
+    icon: "laptop-outline",
+    x: W * 0.08,
+    y: H * 0.13,
+    size: 36,
+    rotate: "12deg",
+    color: "rgba(255, 255, 255, 0.14)",
+    bg: "rgba(255, 255, 255, 0.05)",
+  },
+  // 2. Top-right (just below the header)
+  {
+    id: "2",
     icon: "glasses-outline",
     x: W * 0.78,
     y: H * 0.13,
@@ -17,37 +28,26 @@ const DECORATIONS = [
     color: "rgba(255, 255, 255, 0.14)",
     bg: "rgba(255, 255, 255, 0.05)",
   },
-  // 2. Upper-mid left quadrant
+  // 3. Mid-left
   {
-    id: "2",
+    id: "3",
     icon: "key-outline",
     x: W * 0.07,
-    y: H * 0.32,
+    y: H * 0.42,
     size: 36,
     rotate: "-18deg",
     color: "rgba(255, 255, 255, 0.14)",
     bg: "rgba(255, 255, 255, 0.05)",
   },
-  // 3. Lower-mid right quadrant (shifted further down)
+  // 4. Lower-mid right
   {
-    id: "3",
+    id: "4",
     icon: "wallet-outline",
     x: W * 0.84,
-    y: H * 0.72,
+    y: H * 0.65,
     size: 30,
     rotate: "16deg",
     color: "rgba(255, 255, 255, 0.14)",
-    bg: "rgba(255, 255, 255, 0.05)",
-  },
-  // 4. Bottom left quadrant
-  {
-    id: "4",
-    icon: "laptop-outline",
-    x: W * 0.12,
-    y: H * 0.86,
-    size: 32,
-    rotate: "-12deg",
-    color: "rgba(255, 255, 255, 0.13)",
     bg: "rgba(255, 255, 255, 0.05)",
   },
 ];
