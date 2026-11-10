@@ -42,12 +42,12 @@ This document tracks items that require confirmation, unresolved architecture po
   - [x] Create, update, view, and close LOST and FOUND reports
   - [x] Mandatory category and description validation
   - [x] Optional image upload and safe file handling
-- [ ] **Phase 4: Student Search**
-  - [ ] PostgreSQL full-text and trigram search across reports
-  - [ ] Category, type, date, and location filtering (no Gemini calls)
-- [ ] **Phase 5: Candidate Retrieval Algorithms**
-  - [ ] Opposite-type candidate retrieval with temporal and category matching
-  - [ ] Lexical token-overlap and trigram ranking
+- [x] **Phase 4: Student Search**
+  - [x] PostgreSQL full-text and trigram search across reports
+  - [x] Category, type, date, and location filtering (no Gemini calls)
+- [x] **Phase 5: Candidate Retrieval Algorithms**
+  - [x] Opposite-type candidate retrieval with temporal and category matching
+  - [x] Lexical token-overlap and trigram ranking
 - [ ] **Phase 6: Async Queue & Gemini Evaluation**
   - [ ] Background matching worker process
   - [ ] Gemini API client with structured schema responses
