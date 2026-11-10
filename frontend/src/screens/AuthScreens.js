@@ -28,10 +28,26 @@ export function WelcomeScreen({ navigation }) {
         contentContainerStyle={styles.hero}
         showsVerticalScrollIndicator={false}
       >
-        {/* Centered Brand Mark & Header */}
+        {/* Institutional Campus Header Bar */}
+        <View style={styles.topCampusBar}>
+          <View style={styles.campusInfo}>
+            <Ionicons name="school-outline" size={15} color={C.secondary} />
+            <Text style={styles.campusName}>CUI · ISLAMABAD</Text>
+          </View>
+          <View style={styles.networkBadge}>
+            <View style={styles.activeDot} />
+            <Text style={styles.networkBadgeText}>STUDENT NETWORK</Text>
+          </View>
+        </View>
+
+        {/* Centered Brand Mark with Concentric Radar Rings */}
         <View style={styles.centerSection}>
-          <View style={styles.brandBadge}>
-            <Ionicons name="scan-outline" size={32} color={C.primary} />
+          <View style={styles.radarContainer}>
+            <View style={styles.radarOuterRing} />
+            <View style={styles.radarInnerRing} />
+            <View style={styles.brandBadge}>
+              <Ionicons name="scan-outline" size={32} color={C.primary} />
+            </View>
           </View>
 
           <View style={styles.kickerBadge}>
@@ -441,22 +457,92 @@ const styles = StyleSheet.create({
   welcome: { flex: 1, backgroundColor: C.primary },
   hero: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 24,
-    paddingVertical: 32,
-    gap: 22,
+    paddingTop: 12,
+    paddingBottom: 28,
+  },
+  topCampusBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderWidth: 1,
+    borderRadius: 20,
+    marginBottom: 6,
+  },
+  campusInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  campusName: {
+    color: "#D0DCE3",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+  },
+  networkBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(185, 241, 47, 0.12)",
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: C.secondary,
+  },
+  networkBadgeText: {
+    color: C.secondary,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.4,
   },
   centerSection: {
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     width: "100%",
+    marginVertical: 4,
+  },
+  radarContainer: {
+    width: 120,
+    height: 120,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+  },
+  radarOuterRing: {
+    position: "absolute",
+    width: 118,
+    height: 118,
+    borderRadius: 59,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.05)",
+  },
+  radarInnerRing: {
+    position: "absolute",
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 1,
+    borderColor: "rgba(185, 241, 47, 0.14)",
+    backgroundColor: "rgba(185, 241, 47, 0.03)",
   },
   brandBadge: {
     backgroundColor: C.secondary,
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+    width: 62,
+    height: 62,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: C.secondary,
@@ -464,7 +550,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 4,
-    marginBottom: 4,
   },
   kickerBadge: {
     flexDirection: "row",

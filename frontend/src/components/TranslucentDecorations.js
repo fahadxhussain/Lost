@@ -31,13 +31,13 @@ const DECORATIONS = [
   // 3. Lower-mid right quadrant
   {
     id: "3",
-    icon: "heart",
+    icon: "wallet-outline",
     x: W * 0.85,
-    y: H * 0.58,
-    size: 22,
-    rotate: "14deg",
-    color: "rgba(185, 241, 47, 0.18)",
-    bg: "rgba(185, 241, 47, 0.07)",
+    y: H * 0.65,
+    size: 26,
+    rotate: "16deg",
+    color: "rgba(255, 255, 255, 0.13)",
+    bg: "rgba(255, 255, 255, 0.05)",
   },
   // 4. Bottom left quadrant
   {
