@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Alert, Modal, Text, View } from "react-native";
 import { useResource } from "../hooks/useResource";
 import { useAuth } from "../context/AuthContext";
@@ -6,17 +6,22 @@ import { chatApi, reportsApi, errorMessage } from "../services/api";
 import {
   Button,
   Chips,
+  DataList,
   Empty,
   ErrorNotice,
   Loading,
   Notice,
+  ModalScreen,
   Photo,
-  ReportCard,
+  reportCardProps,
+  matchKey,
   Screen,
   s,
 } from "../components/ui";
-import { COLORS as C } from "../constants/theme";
 import { formatDate } from "../utils/reports";
+import { MyReportRow, MatchRow } from "../components/listRows";
+
+const EMPTY_ITEMS = [];
 
 export function MyItemsScreen({ navigation, route }) {
   const watches = route.name === "Watchlist";
@@ -31,73 +36,101 @@ export function MyItemsScreen({ navigation, route }) {
     [status, watches],
     watches ? 30000 : 0,
   );
-  const reports = (resource.data || []).filter(
-    (r) => !watches || r.type === "LOST",
+  const reports = useMemo(
+    () =>
+      (resource.data || EMPTY_ITEMS).filter(
+        (r) => !watches || r.type === "LOST",
+      ),
+    [resource.data, watches],
+  );
+  const openDetails = useCallback(
+    (id) => navigation.navigate("Details", { id }),
+    [navigation],
+  );
+  const openMatches = useCallback(
+    (id, title) => navigation.navigate("Matches", { id, report: { title } }),
+    [navigation],
+  );
+  const refresh = useCallback(() => resource.reload(), [resource.reload]);
+  const renderReport = useCallback(
+    ({ item }) => (
+      <MyReportRow
+        {...reportCardProps(item)}
+        onPress={openDetails}
+        onMatches={openMatches}
+        matchCount={
+          (item._count?.lostMatches || 0) + (item._count?.foundMatches || 0)
+        }
+      />
+    ),
+    [openDetails, openMatches],
   );
   return (
-    <Screen>
-      <Text style={s.body}>
-        {watches
-          ? "Your search doesn’t stop here."
-          : "Your reports and returns, all together."}
-      </Text>
-      {watches ? (
-        <Notice title="Always on the lookout" dark>
-          New reports can become potential matches for your active lost items.
-          Check matches or notifications for updates.
-        </Notice>
-      ) : (
-        <Chips
-          value={status}
-          onChange={setStatus}
-          options={[
-            { value: "", label: "All" },
-            { value: "ACTIVE", label: "Open" },
-            { value: "RESOLVED", label: "Resolved" },
-            { value: "CLOSED", label: "Closed" },
-          ]}
-        />
-      )}
-      <ErrorNotice message={resource.error} onRetry={() => resource.reload()} />
-      {resource.loading && !resource.data ? <Loading /> : null}
-      {!resource.loading && !resource.error && !reports.length && (
-        <Empty
-          title={
-            watches
-              ? "Nothing on your watchlist."
-              : "Your first report starts here."
-          }
-          body={
-            watches
-              ? "Publish a lost report to start looking for potential matches."
-              : "Lost something or found something? Create a report and track it here."
-          }
-          action="Create a report"
-          onAction={() => navigation.navigate("Report", { type: "LOST" })}
-        />
-      )}
-      {reports.map((report) => (
-        <ReportCard
-          key={report.id}
-          report={report}
-          compact
-          onPress={() => navigation.navigate("Details", { id: report.id })}
-        >
-          <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
-            <Button
-              title={`View potential matches (${(report._count?.lostMatches || 0) + (report._count?.foundMatches || 0)})`}
-              secondary
-              onPress={() =>
-                navigation.navigate("Matches", { id: report.id, report })
-              }
+    <Screen scroll={false}>
+      <DataList
+        data={reports}
+        estimatedItemSize={200}
+        renderItem={renderReport}
+        refreshing={resource.loading}
+        onRefresh={refresh}
+        ListHeaderComponent={
+          <View style={{ gap: 16 }}>
+            <Text style={s.body}>
+              {watches
+                ? "Your search doesn’t stop here."
+                : "Your reports and returns, all together."}
+            </Text>
+            {watches ? (
+              <Notice title="Always on the lookout" dark>
+                New reports can become potential matches for your active lost
+                items. Check matches or notifications for updates.
+              </Notice>
+            ) : (
+              <Chips
+                value={status}
+                onChange={setStatus}
+                options={[
+                  { value: "", label: "All" },
+                  { value: "ACTIVE", label: "Open" },
+                  { value: "RESOLVED", label: "Resolved" },
+                  { value: "CLOSED", label: "Closed" },
+                ]}
+              />
+            )}
+            <ErrorNotice
+              message={resource.error}
+              onRetry={() => resource.reload()}
             />
           </View>
-        </ReportCard>
-      ))}
-      <Button
-        title="Refresh items"
-        onPress={() => resource.reload()}
-        busy={resource.loading}
+        }
+        ListEmptyComponent={
+          <>
+            {resource.loading && !resource.data ? <Loading /> : null}
+            {!resource.loading && !resource.error && !reports.length && (
+              <Empty
+                title={
+                  watches
+                    ? "Nothing on your watchlist."
+                    : "Your first report starts here."
+                }
+                body={
+                  watches
+                    ? "Publish a lost report to start looking for potential matches."
+                    : "Lost something or found something? Create a report and track it here."
+                }
+                action="Create a report"
+                onAction={() => navigation.navigate("Report", { type: "LOST" })}
+              />
+            )}
+          </>
+        }
+        ListFooterComponent={
+          <Button
+            title="Refresh items"
+            onPress={refresh}
+            busy={resource.loading}
+          />
+        }
       />
     </Screen>
   );
@@ -243,9 +276,33 @@ export function MatchesScreen({ navigation, route }) {
     [route.params.id],
     15000,
   );
-  const [selected, setSelected] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const selected =
+    resource.data?.find((match) => match.matchId === selectedId) || null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const openDetails = useCallback(
+    (id) => navigation.navigate("Details", { id }),
+    [navigation],
+  );
+  const explain = useCallback((matchId) => {
+    setSelectedId(matchId);
+    setError("");
+  }, []);
+  const refresh = useCallback(() => resource.reload(), [resource.reload]);
+  const renderMatch = useCallback(
+    ({ item }) => (
+      <MatchRow
+        {...reportCardProps(item.candidateReport)}
+        matchId={item.matchId}
+        score={item.score}
+        aiReasoning={item.aiReasoning}
+        onPress={openDetails}
+        onExplain={explain}
+      />
+    ),
+    [openDetails, explain],
+  );
   async function contact(match) {
     setBusy(true);
     setError("");
@@ -254,7 +311,7 @@ export function MatchesScreen({ navigation, route }) {
         otherUserId: match.candidateReport.owner.id,
         matchId: match.matchId,
       });
-      setSelected(null);
+      setSelectedId(null);
       navigation.navigate("Chat", {
         id: response.data.data.id,
         name: match.candidateReport.owner.name,
@@ -266,69 +323,68 @@ export function MatchesScreen({ navigation, route }) {
     }
   }
   return (
-    <Screen>
-      {route.params.published && (
-        <Text style={s.eyebrow}>REPORT PUBLISHED</Text>
-      )}
-      <Text style={s.heading}>
-        {resource.data?.length
-          ? "This looks promising."
-          : "Your search is in good hands."}
-      </Text>
-      <Text style={s.body}>
-        A match score is a clue, not proof of ownership.
-      </Text>
-      <ErrorNotice message={resource.error} onRetry={() => resource.reload()} />
-      {resource.loading && !resource.data && <Loading />}
-      {resource.data?.length === 0 && (
-        <Empty
-          title="No matches. Yet."
-          body="Matching runs in the background. New potential matches will appear here and in your notifications. Keep your report active while you’re looking."
-          icon="sparkles-outline"
-        />
-      )}
-      {(resource.data || []).map((match) => (
-        <ReportCard
-          key={match.matchId}
-          report={match.candidateReport}
-          onPress={() =>
-            navigation.navigate("Details", { id: match.candidateReport.id })
-          }
-        >
-          <View style={{ padding: 14, gap: 8 }}>
-            <Text style={s.cardTitle}>
-              {Math.round(match.score * 100)}% match
+    <Screen scroll={false}>
+      <DataList
+        data={resource.data || EMPTY_ITEMS}
+        estimatedItemSize={350}
+        renderItem={renderMatch}
+        keyExtractor={matchKey}
+        refreshing={resource.loading}
+        onRefresh={refresh}
+        ListHeaderComponent={
+          <View style={{ gap: 16 }}>
+            {route.params.published && (
+              <Text style={s.eyebrow}>REPORT PUBLISHED</Text>
+            )}
+            <Text style={s.heading}>
+              {resource.data?.length
+                ? "This looks promising."
+                : "Your search is in good hands."}
             </Text>
-            <Text style={s.body}>{match.aiReasoning}</Text>
-            <Button
-              title="Why it matched"
-              secondary
-              onPress={() => {
-                setSelected(match);
-                setError("");
-              }}
+            <Text style={s.body}>
+              A match score is a clue, not proof of ownership.
+            </Text>
+            <ErrorNotice
+              message={resource.error}
+              onRetry={() => resource.reload()}
             />
           </View>
-        </ReportCard>
-      ))}
-      <Button
-        title="Check for matches"
-        busy={resource.loading}
-        onPress={() => resource.reload()}
+        }
+        ListEmptyComponent={
+          <>
+            {resource.loading && !resource.data && <Loading />}
+            {resource.data?.length === 0 && (
+              <Empty
+                title="No matches. Yet."
+                body="Matching runs in the background. New potential matches will appear here and in your notifications. Keep your report active while you’re looking."
+                icon="sparkles-outline"
+              />
+            )}
+          </>
+        }
+        ListFooterComponent={
+          <>
+            <Button
+              title="Check for matches"
+              busy={resource.loading}
+              onPress={refresh}
+            />
+            {route.params.published && (
+              <Button
+                title="Done · Go to feed"
+                secondary
+                onPress={() => navigation.navigate("Main", { screen: "Feed" })}
+              />
+            )}
+          </>
+        }
       />
-      {route.params.published && (
-        <Button
-          title="Done · Go to feed"
-          secondary
-          onPress={() => navigation.navigate("Main", { screen: "Feed" })}
-        />
-      )}
       <Modal
         visible={!!selected}
         animationType="slide"
-        onRequestClose={() => setSelected(null)}
+        onRequestClose={() => setSelectedId(null)}
       >
-        <Screen>
+        <ModalScreen>
           {selected && (
             <>
               <Text style={s.heading}>Why it matched</Text>
@@ -360,11 +416,11 @@ export function MatchesScreen({ navigation, route }) {
               <Button
                 title="Close"
                 secondary
-                onPress={() => setSelected(null)}
+                onPress={() => setSelectedId(null)}
               />
             </>
           )}
-        </Screen>
+        </ModalScreen>
       </Modal>
     </Screen>
   );

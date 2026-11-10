@@ -29,6 +29,19 @@ All HTTP requests and Socket.IO setup are in `src/services/api.js`.
 
 Read requests ignore obsolete responses after filters or navigation change. Network failures retain a retry path. Session restoration does not delete the saved token on a temporary connection failure. Passwords are never persisted.
 
+## React Native performance review
+
+Applied the `vercel-react-native-skills` recommendations while keeping the existing palette, card sizes, form layout, and navigation:
+
+- FlashList 1.7.3 virtualizes the feed, My Items/Watchlist, potential matches, notifications, conversations, and chat. This version and `expo-image ~2.0.7` match the Expo SDK 52 compatibility table.
+- Memoized rows receive primitive values and stable navigation callbacks, so fresh polling objects and composer edits do not force unchanged cards to render again. Static row styles and a shared time formatter avoid repeated allocations.
+- Photos use memory/disk caching and recycling keys. A failed image from a recycled cell cannot hide the next item's image.
+- Pressable replaces TouchableOpacity while retaining button accessibility states and disabled behavior.
+- The native match modal measures its own safe areas. Regular scroll content uses automatic inset adjustment; the modal disables duplicate adjustment inside its safe-area container.
+- Chat follows new content when near the bottom and avoids scrolling away from older messages while the student is reading.
+
+Rendering and navigation regression tests run with native components mocked. Native release performance and physical-device safe-area behavior still require device checks; no benchmark speedup is claimed.
+
 ## Backend boundaries
 
 - No endpoints exist for magic links, secret questions, ownership claims, approve/reject, claim lockout, phone/profile editing, or notification preferences. These draft actions are not presented as working features.
@@ -43,7 +56,7 @@ Read requests ignore obsolete responses after filters or navigation change. Netw
 
 `npm test` covers API contracts/interceptors, JSON/multipart requests, form validation, incident dates, pagination, deduplication/read updates, and rendered login/report/contact flows. `npm run check` validates source syntax, imports, and app configuration. Native Expo exports verify Metro resolves the application.
 
-Validation in this workspace: all 12 tests and source checks passed. Android and iOS JavaScript exports passed with `npx expo export --platform android --platform ios --no-bytecode --output-dir dist`. Standard export reached Hermes compilation but Windows could not spawn `hermesc` (`spawn UNKNOWN`), including an elevated attempt. Production bytecode compilation and device behavior remain unverified. The no-bytecode option is a diagnostic check, not a change to the app's configured JavaScript engine.
+Validation in this workspace: all 19 tests and source checks passed. Android and iOS JavaScript exports passed with `npx expo export --platform android --platform ios --no-bytecode --output-dir dist`. Standard export reached Hermes compilation but Windows could not spawn `hermesc` (`spawn UNKNOWN`), including an elevated attempt. Production bytecode compilation and device behavior remain unverified. The no-bytecode option is a diagnostic check, not a change to the app's configured JavaScript engine.
 
 Device testing still requires a running migrated/seeded backend database, email delivery (or the backend's console OTP in local development), and worker configuration. No live account credentials are included.
 

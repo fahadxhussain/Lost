@@ -1,26 +1,24 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  FlatList,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import React, { useCallback, useRef, useState } from "react";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { chatApi, createChatSocket, errorMessage } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useResource } from "../hooks/useResource";
 import {
   Button,
+  CompactSeparator,
+  DataList,
   Empty,
   ErrorNotice,
-  Icon,
   Loading,
   Screen,
   s,
 } from "../components/ui";
 import { mergeMessages } from "../utils/reports";
 import { COLORS as C } from "../constants/theme";
+import { ConversationRow, MessageRow } from "../components/listRows";
+
+const EMPTY_ITEMS = [];
 
 export function ConversationsScreen({ navigation }) {
   const { user } = useAuth();
@@ -29,51 +27,65 @@ export function ConversationsScreen({ navigation }) {
     [],
     10000,
   );
+  const openConversation = useCallback(
+    (id, name) => navigation.navigate("Chat", { id, name }),
+    [navigation],
+  );
+  const refresh = useCallback(() => resource.reload(), [resource.reload]);
+  const renderConversation = useCallback(
+    ({ item }) => (
+      <ConversationRow
+        id={item.id}
+        name={item.otherParticipant?.name || "Student"}
+        content={item.latestMessage?.content}
+        unread={
+          !!item.latestMessage &&
+          item.latestMessage.senderId !== user.id &&
+          !item.latestMessage.isRead
+        }
+        onPress={openConversation}
+      />
+    ),
+    [openConversation, user.id],
+  );
   return (
-    <Screen>
-      <Text style={s.body}>Coordinate a safe return with your campus.</Text>
-      <ErrorNotice message={resource.error} onRetry={() => resource.reload()} />
-      {resource.loading && !resource.data && <Loading />}
-      {resource.data?.length === 0 && (
-        <Empty
-          title="Start a conversation."
-          body="Contact a student from an item or potential match to start messaging."
-          icon="chatbubbles-outline"
-        />
-      )}
-      {(resource.data || []).map((conversation) => (
-        <TouchableOpacity
-          key={conversation.id}
-          accessibilityRole="button"
-          style={[s.card, s.row]}
-          onPress={() =>
-            navigation.navigate("Chat", {
-              id: conversation.id,
-              name: conversation.otherParticipant?.name || "Student",
-            })
-          }
-        >
-          <Icon name="chatbubble-outline" />
-          <View style={{ flex: 1, gap: 7 }}>
-            <Text style={s.cardTitle}>
-              {conversation.otherParticipant?.name}
+    <Screen scroll={false}>
+      <DataList
+        data={resource.data || EMPTY_ITEMS}
+        estimatedItemSize={110}
+        renderItem={renderConversation}
+        refreshing={resource.loading}
+        onRefresh={refresh}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={s.body}>
+              Coordinate a safe return with your campus.
             </Text>
-            <Text style={s.body} numberOfLines={2}>
-              {conversation.latestMessage?.content ||
-                "Say hello to arrange a return."}
-            </Text>
-            {conversation.latestMessage &&
-              conversation.latestMessage.senderId !== user.id &&
-              !conversation.latestMessage.isRead && (
-                <Text style={s.label}>Unread message</Text>
-              )}
+            <ErrorNotice
+              message={resource.error}
+              onRetry={() => resource.reload()}
+            />
           </View>
-        </TouchableOpacity>
-      ))}
-      <Button
-        title="Refresh conversations"
-        onPress={() => resource.reload()}
-        busy={resource.loading}
+        }
+        ListEmptyComponent={
+          <>
+            {resource.loading && !resource.data && <Loading />}
+            {resource.data?.length === 0 && (
+              <Empty
+                title="Start a conversation."
+                body="Contact a student from an item or potential match to start messaging."
+                icon="chatbubbles-outline"
+              />
+            )}
+          </>
+        }
+        ListFooterComponent={
+          <Button
+            title="Refresh conversations"
+            onPress={refresh}
+            busy={resource.loading}
+          />
+        }
       />
     </Screen>
   );
@@ -91,6 +103,28 @@ export function ChatScreen({ route }) {
   const alive = useRef(false);
   const activeConversation = useRef(id);
   const list = useRef(null);
+  const nearBottom = useRef(true);
+  const trackScroll = useCallback(
+    ({ nativeEvent: { contentOffset, contentSize, layoutMeasurement } }) => {
+      nearBottom.current =
+        contentSize.height - layoutMeasurement.height - contentOffset.y < 80;
+    },
+    [],
+  );
+  const scrollToLatest = useCallback(() => {
+    if (nearBottom.current) list.current?.scrollToEnd({ animated: true });
+  }, []);
+  const renderMessage = useCallback(
+    ({ item }) => (
+      <MessageRow
+        content={item.content}
+        createdAt={item.createdAt}
+        own={item.senderId === user.id}
+        isRead={item.isRead}
+      />
+    ),
+    [user.id],
+  );
   const add = useCallback(
     (items) => setMessages((old) => mergeMessages(old, items)),
     [],
@@ -116,6 +150,7 @@ export function ChatScreen({ route }) {
       setMessages([]);
       setLoading(true);
       setBusy(false);
+      nearBottom.current = true;
       refresh();
       const socket = createChatSocket(token);
       socketRef.current = socket;
@@ -175,6 +210,7 @@ export function ChatScreen({ route }) {
         });
       } else message = (await chatApi.sendMessage(id, content)).data.data;
       if (alive.current && activeConversation.current === id) {
+        nearBottom.current = true;
         add([message]);
         setDraft("");
       }
@@ -194,14 +230,15 @@ export function ChatScreen({ route }) {
       </Text>
       <ErrorNotice message={error} onRetry={refresh} />
       {loading && <Loading />}
-      <FlatList
+      <DataList
         ref={list}
         data={messages}
-        keyExtractor={(m) => m.id}
-        contentContainerStyle={{ padding: 20, gap: 12 }}
-        onContentSizeChange={() =>
-          list.current?.scrollToEnd({ animated: true })
-        }
+        estimatedItemSize={80}
+        contentContainerStyle={styles.messageContent}
+        ItemSeparatorComponent={CompactSeparator}
+        onScroll={trackScroll}
+        scrollEventThrottle={16}
+        onContentSizeChange={scrollToLatest}
         ListEmptyComponent={
           !loading && !error ? (
             <Empty
@@ -211,34 +248,7 @@ export function ChatScreen({ route }) {
             />
           ) : null
         }
-        renderItem={({ item }) => {
-          const own = item.senderId === user.id;
-          return (
-            <View
-              style={{
-                alignSelf: own ? "flex-end" : "flex-start",
-                backgroundColor: own ? C.primary : C.cardBg,
-                padding: 14,
-                borderRadius: 18,
-                maxWidth: "85%",
-                gap: 5,
-              }}
-            >
-              <Text style={{ color: own ? C.cardBg : C.text, lineHeight: 21 }}>
-                {item.content}
-              </Text>
-              <Text
-                style={{ fontSize: 10, color: own ? C.border : C.textMuted }}
-              >
-                {new Date(item.createdAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-                {own ? ` · ${item.isRead ? "Read" : "Sent"}` : ""}
-              </Text>
-            </View>
-          );
-        }}
+        renderItem={renderMessage}
       />
       <View style={[s.row, { backgroundColor: C.cardBg }]}>
         <TextInput
@@ -261,3 +271,7 @@ export function ChatScreen({ route }) {
     </Screen>
   );
 }
+const styles = StyleSheet.create({
+  header: { gap: 16 },
+  messageContent: { padding: 20 },
+});

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, Pressable, View } from "react-native";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -66,14 +66,14 @@ function Header({ navigation, route, options, back }) {
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         {back ? (
-          <TouchableOpacity
+          <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
             onPress={navigation.goBack}
             style={{ padding: 10 }}
           >
             <Icon name="arrow-back" />
-          </TouchableOpacity>
+          </Pressable>
         ) : (
           <View
             style={{
@@ -96,7 +96,7 @@ function Header({ navigation, route, options, back }) {
           )}
         </View>
         {user && (
-          <TouchableOpacity
+          <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Notifications, ${count} unread`}
             onPress={() => navigation.navigate("Notifications")}
@@ -119,7 +119,7 @@ function Header({ navigation, route, options, back }) {
                 </Text>
               </View>
             )}
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
     </View>

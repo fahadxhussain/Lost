@@ -19,6 +19,8 @@ On Windows PowerShell, use `Copy-Item .env.example .env`. Set `EXPO_PUBLIC_API_U
 
 Use a development build or Expo Go compatible with SDK 52. Restart Expo after changing the environment URL. The app defaults to the Android emulator address on Android and localhost elsewhere when no URL is configured.
 
+After pulling the performance improvements, run `npm ci`. If you use a custom development build, rebuild it to include `expo-image` and FlashList. Both versions are matched to SDK 52.
+
 Run the backend separately using `../backend/README.md`: PostgreSQL must be migrated and seeded, email delivery must be configured, and the matching worker must run for AI matches. This frontend never calls Gemini directly.
 
 ## Checks

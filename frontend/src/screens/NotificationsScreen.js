@@ -1,18 +1,22 @@
-import React, { useState } from "react";
-import { FlatList, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { Text, View } from "react-native";
 import { notificationsApi, errorMessage } from "../services/api";
 import { useResource } from "../hooks/useResource";
 import {
   Button,
+  DataList,
   Empty,
   ErrorNotice,
-  Icon,
   Loading,
   Screen,
   s,
 } from "../components/ui";
-import { formatDate } from "../utils/reports";
-import { COLORS as C } from "../constants/theme";
+import { NotificationRow } from "../components/listRows";
+
+const EMPTY_ITEMS = [];
+function Separator() {
+  return <View style={{ height: 14 }} />;
+}
 
 export default function NotificationsScreen({ navigation }) {
   const [page, setPage] = useState(1);
@@ -23,22 +27,41 @@ export default function NotificationsScreen({ navigation }) {
     [page],
     30000,
   );
-  async function read(notification) {
-    setBusy(true);
-    setError("");
-    try {
-      await notificationsApi.markRead(notification.id);
-      resource.reload(true);
-      if (notification.metadata?.oppositeReportId)
-        navigation.navigate("Details", {
-          id: notification.metadata.oppositeReportId,
-        });
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const read = useCallback(
+    async (id, oppositeReportId) => {
+      setBusy(true);
+      setError("");
+      try {
+        await notificationsApi.markRead(id);
+        resource.reload(true);
+        if (oppositeReportId)
+          navigation.navigate("Details", {
+            id: oppositeReportId,
+          });
+      } catch (err) {
+        setError(errorMessage(err));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [navigation, resource.reload],
+  );
+  const refresh = useCallback(() => resource.reload(), [resource.reload]);
+  const renderNotification = useCallback(
+    ({ item }) => (
+      <NotificationRow
+        id={item.id}
+        title={item.title}
+        body={item.body}
+        createdAt={item.createdAt}
+        isRead={item.isRead}
+        oppositeReportId={item.metadata?.oppositeReportId}
+        disabled={busy}
+        onRead={read}
+      />
+    ),
+    [busy, read],
+  );
   async function readAll() {
     setBusy(true);
     setError("");
@@ -53,12 +76,11 @@ export default function NotificationsScreen({ navigation }) {
   }
   return (
     <Screen scroll={false}>
-      <FlatList
-        contentContainerStyle={s.content}
-        data={resource.data?.data || []}
-        keyExtractor={(item) => item.id}
+      <DataList
+        estimatedItemSize={145}
+        data={resource.data?.data || EMPTY_ITEMS}
         refreshing={resource.loading}
-        onRefresh={() => resource.reload()}
+        onRefresh={refresh}
         ListHeaderComponent={
           <View style={{ gap: 12 }}>
             <Text style={s.body}>
@@ -76,27 +98,8 @@ export default function NotificationsScreen({ navigation }) {
             />
           </View>
         }
-        ItemSeparatorComponent={() => <View style={{ height: 14 }} />}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={`${item.isRead ? "Read" : "Unread"}: ${item.title}`}
-            disabled={busy}
-            style={[s.card, s.row, !item.isRead && { borderColor: C.primary }]}
-            onPress={() => read(item)}
-          >
-            <Icon
-              name={item.isRead ? "notifications-outline" : "notifications"}
-            />
-            <View style={{ flex: 1, gap: 7 }}>
-              <Text style={s.cardTitle}>{item.title}</Text>
-              <Text style={s.body}>{item.body}</Text>
-              <Text style={s.label}>
-                {formatDate(item.createdAt)} · {item.isRead ? "Read" : "Unread"}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        ItemSeparatorComponent={Separator}
+        renderItem={renderNotification}
         ListEmptyComponent={
           resource.loading ? (
             <Loading />

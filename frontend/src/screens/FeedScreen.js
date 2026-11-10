@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { FlatList, Text, TouchableOpacity, View } from "react-native";
+import { Text, Pressable, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   categoriesApi,
@@ -9,6 +9,8 @@ import {
 } from "../services/api";
 import {
   Button,
+  CompactSeparator,
+  DataList,
   Chips,
   Empty,
   ErrorNotice,
@@ -16,6 +18,7 @@ import {
   Loading,
   Notice,
   ReportCard,
+  reportCardProps,
   Screen,
   Segments,
   s,
@@ -36,6 +39,16 @@ export default function FeedScreen({ navigation }) {
   const [error, setError] = useState("");
   const generation = useRef(0);
   const pending = useRef(false);
+  const openDetails = useCallback(
+    (id) => navigation.navigate("Details", { id }),
+    [navigation],
+  );
+  const renderReport = useCallback(
+    ({ item }) => (
+      <ReportCard {...reportCardProps(item)} compact onPress={openDetails} />
+    ),
+    [openDetails],
+  );
   useEffect(() => {
     const timer = setTimeout(() => setSearch(query.trim()), 350);
     return () => clearTimeout(timer);
@@ -105,7 +118,7 @@ export default function FeedScreen({ navigation }) {
   );
   const header = (
     <View style={{ gap: 16 }}>
-      <TouchableOpacity
+      <Pressable
         accessibilityRole="button"
         accessibilityLabel="Report a lost item"
         onPress={() => navigation.navigate("Report", { type: "LOST" })}
@@ -113,7 +126,7 @@ export default function FeedScreen({ navigation }) {
         <Notice title="Lost something? Report it" dark>
           Let your campus help you find it. Start looking for potential matches.
         </Notice>
-      </TouchableOpacity>
+      </Pressable>
       <Field
         label="Search campus items"
         placeholder="Wallet, charger, student card…"
@@ -147,22 +160,15 @@ export default function FeedScreen({ navigation }) {
   );
   return (
     <Screen scroll={false}>
-      <FlatList
+      <DataList
         data={reports}
-        keyExtractor={(r) => r.id}
-        contentContainerStyle={s.content}
+        estimatedItemSize={126}
         keyboardShouldPersistTaps="handled"
         refreshing={loading && page === 1}
         onRefresh={() => load()}
         ListHeaderComponent={header}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        renderItem={({ item }) => (
-          <ReportCard
-            compact
-            report={item}
-            onPress={() => navigation.navigate("Details", { id: item.id })}
-          />
-        )}
+        ItemSeparatorComponent={CompactSeparator}
+        renderItem={renderReport}
         ListEmptyComponent={
           loading ? (
             <Loading />

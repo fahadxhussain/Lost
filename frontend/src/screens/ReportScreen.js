@@ -4,7 +4,7 @@ import {
   Platform,
   ScrollView,
   Text,
-  TouchableOpacity,
+  Pressable,
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -151,7 +151,7 @@ export default function ReportScreen({ route, navigation }) {
           ]}
         />
       )}
-      <TouchableOpacity
+      <Pressable
         accessibilityRole="button"
         accessibilityLabel="Add or change item photo"
         onPress={() => setChoosePhoto(true)}
@@ -165,7 +165,7 @@ export default function ReportScreen({ route, navigation }) {
             <Text style={s.label}>Camera / Gallery · Optional</Text>
           </View>
         )}
-      </TouchableOpacity>
+      </Pressable>
       {photo && (
         <Button
           title="Remove selected photo"
@@ -196,7 +196,7 @@ export default function ReportScreen({ route, navigation }) {
         <View style={{ flexDirection: "row", gap: 14 }}>
           <View style={{ flex: 1, gap: 6 }}>
             <Text style={s.label}>Category · Required</Text>
-            <TouchableOpacity
+            <Pressable
               disabled={editing}
               accessibilityRole="button"
               onPress={() => setChooseCategory(true)}
@@ -208,7 +208,7 @@ export default function ReportScreen({ route, navigation }) {
                   "Choose category"}{" "}
                 ▾
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
           <Field
             style={{ flex: 1 }}
