@@ -28,35 +28,76 @@ export function WelcomeScreen({ navigation }) {
         contentContainerStyle={styles.hero}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.mark}>
-          <Icon name="scan-outline" size={32} />
+        <View style={styles.headerRow}>
+          <View style={styles.mark}>
+            <Icon name="scan-outline" size={28} />
+          </View>
+          <View style={styles.aiBadgePill}>
+            <Ionicons name="sparkles" size={13} color={C.secondary} />
+            <Text style={styles.aiBadgePillText}>GEMINI AI POWERED</Text>
+          </View>
         </View>
-        <Text style={styles.kicker}>CAMPUS, CONNECTED</Text>
-        <Text style={styles.title}>{"Lost things.\nFound together."}</Text>
-        <Text style={styles.subtitle}>
-          {"A little help from AI.\nA lot of help from your campus."}
-        </Text>
+
+        <View style={{ gap: 6 }}>
+          <Text style={styles.kicker}>CAMPUS, CONNECTED</Text>
+          <Text style={styles.title}>{"Lost things.\nFound together."}</Text>
+          <Text style={styles.subtitle}>
+            {"Multimodal AI matching paired with your campus community."}
+          </Text>
+        </View>
+
         <View style={styles.steps}>
-          {[
-            ["camera-outline", "Snap it"],
-            ["sparkles-outline", "Match it"],
-            ["heart-outline", "Return it"],
-          ].map(([icon, text]) => (
-            <View key={text} style={{ alignItems: "center", gap: 10 }}>
-              <Icon name={icon} color={C.secondary} />
-              <Text style={{ color: C.cardBg, fontWeight: "500" }}>{text}</Text>
+          <View style={styles.stepItem}>
+            <Icon name="camera-outline" color="#B2C5D1" size={22} />
+            <Text style={styles.stepText}>Snap it</Text>
+          </View>
+
+          <View style={styles.aiStepHighlight}>
+            <View style={styles.aiStepBadge}>
+              <Ionicons name="sparkles" size={10} color={C.primary} />
+              <Text style={styles.aiStepBadgeText}>AI</Text>
             </View>
-          ))}
+            <Icon name="sparkles" color={C.secondary} size={22} />
+            <Text
+              style={[
+                styles.stepText,
+                { color: C.secondary, fontWeight: "700" },
+              ]}
+            >
+              Match it
+            </Text>
+          </View>
+
+          <View style={styles.stepItem}>
+            <Icon name="heart-outline" color="#B2C5D1" size={22} />
+            <Text style={styles.stepText}>Return it</Text>
+          </View>
+        </View>
+
+        {/* Highlighting AI on Welcome Screen */}
+        <View style={styles.aiBanner}>
+          <View style={styles.aiBannerIconWrap}>
+            <Ionicons name="sparkles" size={16} color={C.secondary} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.aiBannerTitle}>
+              Intelligent Gemini Multimodal AI
+            </Text>
+            <Text style={styles.aiBannerSubtitle}>
+              Automatically compares item photos, colors, and descriptions across
+              Islamabad campus to detect instant matches.
+            </Text>
+          </View>
         </View>
 
         <View style={styles.trustBadge}>
-          <Ionicons name="shield-checkmark" size={15} color={C.secondary} />
+          <Ionicons name="shield-checkmark" size={14} color={C.secondary} />
           <Text style={styles.trustBadgeText}>
             Your campus email · A password · A safer return
           </Text>
         </View>
 
-        <View style={{ gap: 14, marginTop: 6 }}>
+        <View style={{ gap: 12, marginTop: 4 }}>
           {sessionNotice && (
             <Text
               accessibilityRole="alert"
@@ -406,28 +447,115 @@ export function OtpScreen({ navigation, route }) {
 }
 const styles = StyleSheet.create({
   welcome: { flex: 1, backgroundColor: C.primary },
-  hero: { padding: 24, paddingTop: 60, paddingBottom: 40, gap: 22 },
+  hero: { padding: 24, paddingTop: 50, paddingBottom: 40, gap: 18 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   mark: {
     backgroundColor: C.secondary,
-    padding: 15,
-    borderRadius: 18,
+    padding: 13,
+    borderRadius: 16,
     alignSelf: "flex-start",
+  },
+  aiBadgePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(185, 241, 47, 0.12)",
+    borderColor: "rgba(185, 241, 47, 0.35)",
+    borderWidth: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+  },
+  aiBadgePillText: {
+    color: C.secondary,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.6,
   },
   kicker: {
     color: C.secondary,
     backgroundColor: C.primaryLight,
-    padding: 8,
-    borderRadius: 14,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 12,
     alignSelf: "flex-start",
     fontSize: 11,
     fontWeight: "700",
   },
-  title: { color: C.cardBg, fontSize: 38, fontWeight: "700", lineHeight: 44 },
-  subtitle: { color: C.border, fontSize: 16, lineHeight: 24 },
+  title: { color: C.cardBg, fontSize: 36, fontWeight: "700", lineHeight: 42 },
+  subtitle: { color: "#C5D5DE", fontSize: 15, lineHeight: 22 },
   steps: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 12,
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  stepItem: {
+    alignItems: "center",
+    gap: 6,
+  },
+  stepText: {
+    color: C.cardBg,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  aiStepHighlight: {
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(185, 241, 47, 0.12)",
+    borderColor: "rgba(185, 241, 47, 0.4)",
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    position: "relative",
+  },
+  aiStepBadge: {
+    position: "absolute",
+    top: -8,
+    right: -4,
+    backgroundColor: C.secondary,
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  aiStepBadgeText: {
+    color: C.primary,
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  aiBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.07)",
+    borderColor: "rgba(185, 241, 47, 0.28)",
+    borderWidth: 1,
+    padding: 14,
+    borderRadius: 18,
+  },
+  aiBannerIconWrap: {
+    backgroundColor: "rgba(185, 241, 47, 0.16)",
+    padding: 8,
+    borderRadius: 12,
+    marginTop: 2,
+  },
+  aiBannerTitle: {
+    color: C.cardBg,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  aiBannerSubtitle: {
+    color: "#B8C9D3",
+    fontSize: 12,
+    lineHeight: 17,
   },
   trustBadge: {
     flexDirection: "row",
@@ -437,7 +565,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.08)",
     borderColor: "rgba(255, 255, 255, 0.14)",
     borderWidth: 1,
-    paddingVertical: 10,
+    paddingVertical: 9,
     paddingHorizontal: 16,
     borderRadius: 20,
     alignSelf: "center",
