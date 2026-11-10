@@ -9,13 +9,13 @@ const DECORATIONS = [
   // 1. Top-right quadrant
   {
     id: "1",
-    icon: "sparkles",
+    icon: "glasses-outline",
     x: W * 0.80,
     y: H * 0.13,
-    size: 22,
-    rotate: "24deg",
-    color: "rgba(185, 241, 47, 0.22)",
-    bg: "rgba(185, 241, 47, 0.08)",
+    size: 26,
+    rotate: "-15deg",
+    color: "rgba(255, 255, 255, 0.13)",
+    bg: "rgba(255, 255, 255, 0.05)",
   },
   // 2. Upper-mid left quadrant
   {

@@ -35,7 +35,6 @@ export function WelcomeScreen({ navigation }) {
           </View>
 
           <View style={styles.kickerBadge}>
-            <Ionicons name="sparkles" size={12} color={C.secondary} />
             <Text style={styles.kickerText}>CAMPUS, CONNECTED</Text>
           </View>
 
