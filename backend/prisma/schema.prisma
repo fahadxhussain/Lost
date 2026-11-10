@@ -42,6 +42,8 @@ model User {
   email            String       @unique
   passwordHash     String       @map("password_hash")
   name             String?
+  avatarUrl        String?      @map("avatar_url")
+  tokenVersion     Int          @default(0) @map("token_version")
   rollNumber       String?      @map("roll_number")
   status           UserStatus   @default(PENDING_VERIFICATION)
   emailVerifiedAt  DateTime?    @map("email_verified_at")
@@ -50,12 +52,26 @@ model User {
 
   reports          Report[]
   otps             EmailVerificationOtp[]
+  passwordResets   PasswordResetToken[]
   notifications    Notification[]
   messagesSent     Message[]    @relation("SentMessages")
   conversations1   Conversation[] @relation("ParticipantOne")
   conversations2   Conversation[] @relation("ParticipantTwo")
 
   @@map("users")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("password_reset_tokens")
 }
 
 model EmailVerificationOtp {

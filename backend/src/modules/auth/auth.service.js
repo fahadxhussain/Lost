@@ -57,6 +57,7 @@ class AuthService {
         id: user.id,
         email: user.email,
         status: user.status,
+        tokenVersion: user.tokenVersion || 0,
       },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn }
@@ -225,6 +226,7 @@ class AuthService {
         id: activeUser.id,
         email: activeUser.email,
         name: activeUser.name,
+        avatarUrl: activeUser.avatarUrl,
         rollNumber: activeUser.rollNumber,
         status: activeUser.status,
       },
@@ -314,6 +316,7 @@ class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        avatarUrl: user.avatarUrl,
         rollNumber: user.rollNumber,
         status: user.status,
       },

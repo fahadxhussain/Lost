@@ -1,5 +1,14 @@
 import React, { useCallback, useRef, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useHeaderHeight } from "@react-navigation/elements";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Pressable from "../components/TouchTarget";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   chatApi,
@@ -18,6 +27,7 @@ import {
   Empty,
   ErrorNotice,
   Loading,
+  Icon,
   Screen,
   s,
 } from "../components/ui";
@@ -100,6 +110,8 @@ export function ConversationsScreen({ navigation }) {
   );
 }
 export function ChatScreen({ route }) {
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
   const { user, token } = useAuth();
   const id = route.params?.id;
   const [messages, setMessages] = useState([]);
@@ -282,7 +294,7 @@ export function ChatScreen({ route }) {
     });
   }
   return (
-    <Screen scroll={false}>
+    <Screen scroll={false} keyboardVerticalOffset={headerHeight}>
       <Text style={[s.label, { padding: 12 }]}>
         {connected
           ? "Connected · Campus conversation"
@@ -320,7 +332,12 @@ export function ChatScreen({ route }) {
           entered).
         </Text>
       )}
-      <View style={[s.row, { backgroundColor: C.cardBg }]}>
+      <View
+        style={[
+          styles.composer,
+          { paddingBottom: Math.max(12, insets.bottom) },
+        ]}
+      >
         <TextInput
           accessibilityLabel="Message"
           placeholder="Write a message…"
@@ -334,14 +351,35 @@ export function ChatScreen({ route }) {
           }}
           style={[s.input, { flex: 1, maxHeight: 110 }]}
         />
-        <Button
-          title="Send"
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
+          accessibilityState={{
+            disabled:
+              busy ||
+              !id ||
+              !draft.trim() ||
+              draft.trim().length > LIMITS.message,
+            busy,
+          }}
           onPress={send}
           disabled={
-            !id || !draft.trim() || draft.trim().length > LIMITS.message
+            busy || !id || !draft.trim() || draft.trim().length > LIMITS.message
           }
-          busy={busy}
-        />
+          style={[
+            styles.sendButton,
+            (busy ||
+              !id ||
+              !draft.trim() ||
+              draft.trim().length > LIMITS.message) && { opacity: 0.45 },
+          ]}
+        >
+          {busy ? (
+            <ActivityIndicator color={C.cardBg} />
+          ) : (
+            <Icon name="send" color={C.cardBg} size={21} />
+          )}
+        </Pressable>
       </View>
     </Screen>
   );
@@ -349,4 +387,22 @@ export function ChatScreen({ route }) {
 const styles = StyleSheet.create({
   header: { gap: 16 },
   messageContent: { padding: 20 },
+  composer: {
+    backgroundColor: C.cardBg,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  sendButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: C.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

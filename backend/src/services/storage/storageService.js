@@ -29,7 +29,8 @@ const storage = multer.diskStorage({
     cb(null, uploadDirectory);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
+    // Never serve an accepted image as executable HTML because of its original extension.
+    const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' }[file.mimetype] || '.bin';
     const uniqueName = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
     cb(null, uniqueName);
   },

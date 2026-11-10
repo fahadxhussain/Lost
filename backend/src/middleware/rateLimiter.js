@@ -33,4 +33,12 @@ const otpResendLimiter = rateLimit({
 module.exports = {
   authLimiter,
   otpResendLimiter,
+  passwordResetLimiter: rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 3,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    message: { status: 'error', message: 'Too many password reset requests. Please wait 15 minutes before requesting another link.' },
+  }),
 };

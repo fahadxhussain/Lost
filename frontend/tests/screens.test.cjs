@@ -13,6 +13,7 @@ function harness() {
   const cache = new Map();
   const calls = [];
   const socketHandlers = new Map();
+  const keyboardCallbacks = new Map();
   let now = Date.now();
   class TestDate extends Date {
     constructor(...args) {
@@ -59,6 +60,10 @@ function harness() {
     },
     token: "jwt",
     acceptSession: async (session) => calls.push(["session", session]),
+    updateUser: (user) => {
+      auth.user = user;
+      calls.push(["profile-updated", user]);
+    },
   };
   const api = {
     createChatSocket: () => socket,
@@ -89,6 +94,18 @@ function harness() {
       update: async () => ({}),
     },
     authApi: {
+      forgotPassword: async (email) => {
+        calls.push(["reset-link", email]);
+        return {
+          data: {
+            message: "If an active account exists, a reset link will be sent.",
+          },
+        };
+      },
+      updateProfile: async (payload) => {
+        calls.push(["update-profile", payload]);
+        return { data: { data: { user: { ...auth.user, ...payload } } } };
+      },
       register: async (payload) => {
         calls.push(["register", payload]);
         return { data: { data: { userId: "new-user" } } };
@@ -128,11 +145,43 @@ function harness() {
     ].map((name) => [name, name]),
   );
   native.Platform = { OS: "android" };
+  native.Dimensions = { get: () => ({ width: 390, height: 844 }) };
   native.Text = (props) => {
     calls.push(["text-render", props.children]);
     return React.createElement("Text", props);
   };
   native.StyleSheet = { create: (value) => value };
+  native.Keyboard = {
+    addListener: (event, callback) => {
+      keyboardCallbacks.set(event, callback);
+      return { remove: () => keyboardCallbacks.delete(event) };
+    },
+  };
+  native.AccessibilityInfo = {
+    isReduceMotionEnabled: async () => false,
+    addEventListener: () => ({ remove: () => {} }),
+  };
+  native.Animated = {
+    View: "AnimatedView",
+    Value: class {
+      constructor(value) {
+        this.value = value;
+      }
+      setValue(value) {
+        this.value = value;
+      }
+      interpolate(options) {
+        return { value: this.value, ...options };
+      }
+    },
+    spring: (value, config) => ({
+      start: () => {
+        value.setValue(config.toValue);
+        calls.push(["tab-animation", config]);
+      },
+      stop: () => {},
+    }),
+  };
   native.Alert = { alert: (...args) => calls.push(["alert", ...args]) };
   native.Linking = { openSettings: async () => calls.push(["settings"]) };
   function load(file) {
@@ -165,7 +214,26 @@ function harness() {
           if (name === "@react-navigation/native")
             return {
               useFocusEffect: (effect) => React.useEffect(effect, [effect]),
+              NavigationContainer: "NavigationContainer",
+              DefaultTheme: { colors: {} },
             };
+          if (name === "@react-navigation/native-stack")
+            return {
+              createNativeStackNavigator: () => ({
+                Navigator: "StackNavigator",
+                Screen: "StackScreen",
+                Group: "StackGroup",
+              }),
+            };
+          if (name === "@react-navigation/bottom-tabs")
+            return {
+              createBottomTabNavigator: () => ({
+                Navigator: "TabsNavigator",
+                Screen: "TabScreen",
+              }),
+            };
+          if (name === "@react-navigation/elements")
+            return { useHeaderHeight: () => 96 };
           if (name === "@expo/vector-icons") return { Ionicons: "Icon" };
           if (name === "expo-image") return { Image: "CachedImage" };
           if (name === "@shopify/flash-list") return { FlashList };
@@ -173,6 +241,12 @@ function harness() {
             return {
               SafeAreaView: "SafeAreaView",
               SafeAreaProvider: "SafeAreaProvider",
+              useSafeAreaInsets: () => ({
+                top: 24,
+                bottom: 20,
+                left: 0,
+                right: 0,
+              }),
             };
           if (name === "expo-image-picker") return picker;
           if (name === "@react-native-async-storage/async-storage")
@@ -230,6 +304,8 @@ function harness() {
     calls,
     navigation,
     socketHandlers,
+    keyboardCallbacks,
+    native,
     setResource: (data) => {
       resourceData = data;
     },
@@ -241,6 +317,11 @@ function button(tree, label) {
     .find((node) =>
       node.findAllByType("Text").some((text) => text.props.children === label),
     );
+}
+function sendButton(tree) {
+  return tree.root
+    .findAllByType("Pressable")
+    .find((node) => node.props.accessibilityLabel === "Send message");
 }
 test("touch feedback preserves actions, hover and press styles, and suppresses disabled taps", async () => {
   const h = harness();
@@ -938,7 +1019,7 @@ test("chat preserves failed drafts and send errors across background refresh, th
   });
   act(() => input(tree, "Message").props.onChangeText("Is this your wallet?"));
   await act(async () => {
-    await button(tree, "Send").props.onPress();
+    await sendButton(tree).props.onPress();
   });
   assert.equal(input(tree, "Message").props.value, "Is this your wallet?");
   await act(async () => h.advanceTime(6000));
@@ -954,7 +1035,7 @@ test("chat preserves failed drafts and send errors across background refresh, th
     },
   });
   await act(async () => {
-    await button(tree, "Send").props.onPress();
+    await sendButton(tree).props.onPress();
   });
   assert.equal(input(tree, "Message").props.value, "");
   assert.equal(tree.root.findByType("FlashList").props.data.length, 1);
@@ -979,7 +1060,7 @@ test("chat safely handles missing conversation and overlong messages", async () 
   });
   act(() => input(tree, "Message").props.onChangeText("a".repeat(5001)));
   assert.match(visibleText(tree), /5000 characters/);
-  assert.equal(button(tree, "Send").props.disabled, true);
+  assert.equal(sendButton(tree).props.disabled, true);
   act(() => tree.unmount());
 });
 
@@ -1177,5 +1258,205 @@ test("sign-in storage failure keeps credentials and pending accounts cannot esta
     ),
   );
   assert.equal(current.user, null);
+  act(() => tree.unmount());
+});
+
+test("Report choice navigates to the selected form instead of displaying lost/found toggles", async () => {
+  const h = harness();
+  const Choice = h.load("src/screens/ReportChoiceScreen.js").default;
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(Choice, { navigation: h.navigation }),
+    );
+  });
+  act(() => button(tree, "I lost something").props.onPress());
+  act(() => button(tree, "I found something").props.onPress());
+  assert.equal(
+    h.calls.filter(
+      ([kind, route]) => kind === "navigate" && route === "CreateReport",
+    ).length,
+    2,
+  );
+  assert.equal(
+    h.calls.find(
+      ([kind, route]) => kind === "navigate" && route === "CreateReport",
+    )[2].type,
+    "LOST",
+  );
+  act(() => tree.unmount());
+  const Report = h.load("src/screens/ReportScreen.js").default;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(Report, {
+        navigation: h.navigation,
+        route: { name: "CreateReport", params: { type: "LOST" } },
+      }),
+    );
+  });
+  assert.match(visibleText(tree), /Tell us what you lost/);
+  assert.equal(button(tree, "I found something"), undefined);
+  act(() => tree.unmount());
+});
+
+test("navigation starts on Main, replaces the report tab with Messages, and hides the Report FAB for the keyboard", async () => {
+  const h = harness();
+  const Navigator = h.load("src/navigation/AppNavigator.js").default;
+  let tree, tabs;
+  await act(async () => {
+    tree = renderer.create(React.createElement(Navigator));
+  });
+  const screens = tree.root.findAllByType("StackScreen");
+  assert.equal(screens[0].props.name, "Main");
+  const Main = screens[0].props.component;
+  await act(async () => {
+    tabs = renderer.create(
+      React.createElement(Main, { navigation: h.navigation }),
+    );
+  });
+  assert.deepEqual(
+    tabs.root.findAllByType("TabScreen").map((screen) => screen.props.name),
+    ["Feed", "Watchlist", "Messages", "MyItems", "Profile"],
+  );
+  assert.equal(
+    tabs.root
+      .findAllByType("TabScreen")
+      .find((screen) => screen.props.name === "MyItems").props.options
+      .tabBarLabel,
+    "My Reports",
+  );
+  act(() => button(tabs, "Report").props.onPress());
+  assert.ok(
+    h.calls.some(([kind, route]) => kind === "navigate" && route === "Report"),
+  );
+  act(() => h.keyboardCallbacks.get("keyboardDidShow")());
+  assert.equal(button(tabs, "Report"), undefined);
+  act(() => {
+    tabs.unmount();
+    tree.unmount();
+  });
+  h.auth.user = null;
+  await act(async () => {
+    tree = renderer.create(React.createElement(Navigator));
+  });
+  assert.equal(tree.root.findAllByType("StackScreen")[0].props.name, "Welcome");
+  assert.ok(
+    tree.root
+      .findAllByType("StackScreen")
+      .some((screen) => screen.props.name === "ForgotPassword"),
+  );
+  act(() => tree.unmount());
+});
+
+test("selected tabs animate with the native driver and respect reduced motion", async () => {
+  const h = harness();
+  const Tab = h.load("src/components/AnimatedTabButton.js").default;
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(Tab, { "aria-selected": false }),
+    );
+  });
+  h.calls.length = 0;
+  await act(async () =>
+    tree.update(React.createElement(Tab, { "aria-selected": true })),
+  );
+  assert.ok(
+    h.calls.some(
+      ([kind, config]) =>
+        kind === "tab-animation" &&
+        config.toValue === 1 &&
+        config.useNativeDriver,
+    ),
+  );
+  act(() => tree.unmount());
+  h.native.AccessibilityInfo.isReduceMotionEnabled = async () => true;
+  h.calls.length = 0;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(Tab, { "aria-selected": false }),
+    );
+  });
+  await act(async () =>
+    tree.update(React.createElement(Tab, { "aria-selected": true })),
+  );
+  assert.equal(
+    h.calls.some(([kind]) => kind === "tab-animation"),
+    false,
+  );
+  act(() => tree.unmount());
+});
+
+test("chat composer uses the measured header offset and an accessible send icon", async () => {
+  const h = harness();
+  const { ChatScreen } = h.load("src/screens/ChatScreens.js");
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(ChatScreen, { route: { params: { id: "c1" } } }),
+    );
+  });
+  const keyboardView = tree.root.findByType("KeyboardAvoidingView");
+  assert.equal(keyboardView.props.keyboardVerticalOffset, 96);
+  assert.equal(keyboardView.props.behavior, "height");
+  assert.equal(sendButton(tree).findAllByType("Text").length, 0);
+  assert.equal(sendButton(tree).props.disabled, true);
+  act(() => tree.unmount());
+});
+
+test("forgot password validates email, requests a link, and prevents repeated requests during cooldown", async () => {
+  const h = harness();
+  const Forgot = h.load("src/screens/ForgotPasswordScreen.js").default;
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(Forgot, { navigation: h.navigation, route: {} }),
+    );
+  });
+  await act(async () => button(tree, "Send reset link").props.onPress());
+  assert.equal(
+    h.calls.some(([kind]) => kind === "reset-link"),
+    false,
+  );
+  act(() =>
+    input(tree, "Student email").props.onChangeText(
+      " STUDENT@ISBSTUDENT.COMSATS.EDU.PK ",
+    ),
+  );
+  await act(async () => button(tree, "Send reset link").props.onPress());
+  assert.equal(
+    h.calls.find(([kind]) => kind === "reset-link")[1],
+    "student@isbstudent.comsats.edu.pk",
+  );
+  assert.match(visibleText(tree), /If an active account exists/);
+  await act(async () => button(tree, "Send again in 60s").props.onPress());
+  assert.equal(h.calls.filter(([kind]) => kind === "reset-link").length, 1);
+  act(() => tree.unmount());
+});
+
+test("profile saves username without changing fixed details and requests a reset link", async () => {
+  const h = harness();
+  const Profile = h.load("src/screens/ProfileScreen.js").default;
+  let tree;
+  await act(async () => {
+    tree = renderer.create(React.createElement(Profile));
+  });
+  assert.equal(input(tree, "Registration number").props.editable, false);
+  assert.equal(input(tree, "Campus email").props.editable, false);
+  assert.doesNotMatch(visibleText(tree), /YOUR CAMPUS/);
+  act(() => input(tree, "Username").props.onChangeText(" New username "));
+  await act(async () => button(tree, "Save profile").props.onPress());
+  assert.equal(
+    h.calls.find(([kind]) => kind === "update-profile")[1].name,
+    "New username",
+  );
+  assert.equal(h.auth.user.name, "New username");
+  await act(async () =>
+    button(tree, "Send password reset link").props.onPress(),
+  );
+  assert.equal(
+    h.calls.find(([kind]) => kind === "reset-link")[1],
+    h.auth.user.email,
+  );
   act(() => tree.unmount());
 });

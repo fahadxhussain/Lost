@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { StatusBar, Text, View } from "react-native";
+import {
+  Keyboard,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Pressable from "../components/TouchTarget";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
@@ -28,6 +35,9 @@ import {
 import NotificationsScreen from "../screens/NotificationsScreen";
 import { ChatScreen, ConversationsScreen } from "../screens/ChatScreens";
 import ProfileScreen from "../screens/ProfileScreen";
+import AnimatedTabButton from "../components/AnimatedTabButton";
+import ReportChoiceScreen from "../screens/ReportChoiceScreen";
+import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -211,90 +221,108 @@ function Header({ navigation, route, options, back }) {
     </View>
   );
 }
-function MainTabs() {
+function MainTabs({ navigation }) {
   const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const icons = {
     Feed: "grid-outline",
     Watchlist: "radio-outline",
-    Report: "add",
+    Messages: "chatbubbles-outline",
     MyItems: "file-tray-outline",
     Profile: "person-outline",
   };
   return (
-    <Tabs.Navigator
-      screenOptions={({ route }) => ({
-        header: (props) => <Header {...props} />,
-        sceneStyle: { backgroundColor: C.background },
-        tabBarHideOnKeyboard: true,
-        tabBarButton: (props) => <Pressable {...props} />,
-        tabBarLabelPosition: "below-icon",
-        tabBarActiveTintColor: C.primary,
-        tabBarInactiveTintColor: C.textMuted,
-        tabBarStyle: {
-          backgroundColor: C.cardBg,
-          borderTopWidth: 0,
-          borderTopLeftRadius: 28,
-          borderTopRightRadius: 28,
-          paddingTop: 8,
-          paddingBottom: Math.max(insets.bottom, 8),
-          height: 76 + Math.max(insets.bottom, 8),
-        },
-        tabBarItemStyle: { paddingVertical: 4 },
-        tabBarIconStyle: { width: 48, height: 34 },
-        tabBarLabelStyle: { fontSize: 10, lineHeight: 14, marginTop: 4 },
-        tabBarIcon: ({ focused, color }) => (
-          <View
-            style={{
-              width: 48,
-              height: 34,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 20,
-              backgroundColor:
-                route.name === "Report"
-                  ? C.secondary
-                  : focused
-                    ? C.primary
-                    : "transparent",
-            }}
-          >
-            <Icon
-              name={icons[route.name]}
-              size={22}
-              color={
-                route.name === "Report"
-                  ? C.primary
-                  : focused
-                    ? C.background
-                    : color
-              }
-            />
-          </View>
-        ),
-      })}
-    >
-      <Tabs.Screen
-        name="Feed"
-        component={FeedScreen}
-        options={{ title: "Lost & Found", tabBarLabel: "Feed" }}
-      />
-      <Tabs.Screen
-        name="Watchlist"
-        component={MyItemsScreen}
-        options={{ title: "Active watches", tabBarLabel: "Watchlist" }}
-      />
-      <Tabs.Screen
-        name="Report"
-        component={ReportScreen}
-        options={{ title: "Report an item" }}
-      />
-      <Tabs.Screen
-        name="MyItems"
-        component={MyItemsScreen}
-        options={{ title: "My items" }}
-      />
-      <Tabs.Screen name="Profile" component={ProfileScreen} />
-    </Tabs.Navigator>
+    <View style={{ flex: 1 }}>
+      <Tabs.Navigator
+        screenOptions={({ route }) => ({
+          header: (props) => <Header {...props} />,
+          sceneStyle: { backgroundColor: C.background },
+          tabBarHideOnKeyboard: true,
+          tabBarButton: (props) => <AnimatedTabButton {...props} />,
+          tabBarLabelPosition: "below-icon",
+          tabBarActiveTintColor: C.primary,
+          tabBarInactiveTintColor: C.textMuted,
+          tabBarStyle: {
+            backgroundColor: C.cardBg,
+            borderTopWidth: 0,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            paddingTop: 8,
+            paddingBottom: Math.max(insets.bottom, 8),
+            height: 76 + Math.max(insets.bottom, 8),
+          },
+          tabBarItemStyle: { paddingVertical: 4 },
+          tabBarIconStyle: { width: 48, height: 34 },
+          tabBarLabelStyle: { fontSize: 10, lineHeight: 14, marginTop: 4 },
+          tabBarIcon: ({ focused, color }) => (
+            <View
+              style={{
+                width: 48,
+                height: 34,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 20,
+                backgroundColor: focused ? C.primary : "transparent",
+              }}
+            >
+              <Icon
+                name={icons[route.name]}
+                size={22}
+                color={focused ? C.background : color}
+              />
+            </View>
+          ),
+        })}
+      >
+        <Tabs.Screen
+          name="Feed"
+          component={FeedScreen}
+          options={{ title: "Lost & Found", tabBarLabel: "Feed" }}
+        />
+        <Tabs.Screen
+          name="Watchlist"
+          component={MyItemsScreen}
+          options={{ title: "Active watches", tabBarLabel: "Watchlist" }}
+        />
+        <Tabs.Screen
+          name="Messages"
+          component={ConversationsScreen}
+          options={{ title: "Messages" }}
+        />
+        <Tabs.Screen
+          name="MyItems"
+          component={MyItemsScreen}
+          options={{ title: "My Reports", tabBarLabel: "My Reports" }}
+        />
+        <Tabs.Screen name="Profile" component={ProfileScreen} />
+      </Tabs.Navigator>
+      {!keyboardVisible && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Report"
+          haptic="light"
+          onPress={() => navigation.navigate("Report")}
+          style={[navStyles.fab, { bottom: 92 + Math.max(insets.bottom, 8) }]}
+        >
+          <Icon name="add" size={24} />
+          <Text style={navStyles.fabText}>Report</Text>
+        </Pressable>
+      )}
+    </View>
   );
 }
 export default function AppNavigator() {
@@ -340,6 +368,21 @@ export default function AppNavigator() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              name="Report"
+              component={ReportChoiceScreen}
+              options={{ title: "Report" }}
+            />
+            <Stack.Screen
+              name="CreateReport"
+              component={ReportScreen}
+              options={({ route }) => ({
+                title:
+                  route.params?.type === "LOST"
+                    ? "Report a lost item"
+                    : "Report a found item",
+              })}
+            />
+            <Stack.Screen
               name="Details"
               component={DetailsScreen}
               options={{ title: "Item details" }}
@@ -367,7 +410,7 @@ export default function AppNavigator() {
               name="Chat"
               component={ChatScreen}
               options={({ route }) => ({
-                title: route.params.name || "Conversation",
+                title: route.params?.name || "Conversation",
               })}
             />
           </Stack.Group>
@@ -377,6 +420,11 @@ export default function AppNavigator() {
               name="Welcome"
               component={WelcomeScreen}
               options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+              options={{ title: "Reset password" }}
             />
             <Stack.Screen
               name="Register"
@@ -399,3 +447,19 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
+const navStyles = StyleSheet.create({
+  fab: {
+    position: "absolute",
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    borderRadius: 28,
+    backgroundColor: C.secondary,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    elevation: 6,
+    boxShadow: "0px 4px 14px #0B304825",
+  },
+  fabText: { color: C.primary, fontSize: 15, fontWeight: "700" },
+});

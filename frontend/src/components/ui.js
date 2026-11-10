@@ -57,11 +57,7 @@ export function Button({
           }}
         >
           <Text
-            style={[
-              s.buttonText,
-              secondary && { color: C.primary },
-              textStyle,
-            ]}
+            style={[s.buttonText, secondary && { color: C.primary }, textStyle]}
           >
             {title}
           </Text>
@@ -69,11 +65,7 @@ export function Button({
         </View>
       ) : (
         <Text
-          style={[
-            s.buttonText,
-            secondary && { color: C.primary },
-            textStyle,
-          ]}
+          style={[s.buttonText, secondary && { color: C.primary }, textStyle]}
         >
           {title}
         </Text>
@@ -267,17 +259,20 @@ export function Screen({
   children,
   scroll = true,
   contentInsetAdjustmentBehavior = "automatic",
+  keyboardVerticalOffset = 0,
+  contentStyle,
 }) {
   return (
     <KeyboardAvoidingView
       style={s.page}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={keyboardVerticalOffset}
     >
       {scroll ? (
         <ScrollView
           contentInsetAdjustmentBehavior={contentInsetAdjustmentBehavior}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={s.content}
+          contentContainerStyle={[s.content, contentStyle]}
         >
           {children}
         </ScrollView>
@@ -414,7 +409,7 @@ export const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: C.background },
   content: { padding: 24, gap: 16, paddingBottom: 32 },
   listFrame: { flex: 1, minHeight: 2 },
-  listContent: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 },
+  listContent: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 108 },
   listHeader: { marginBottom: 16 },
   listFooter: { marginTop: 16 },
   listSeparator: { height: 16 },

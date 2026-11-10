@@ -4,6 +4,7 @@ module.exports = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:8081',
+  publicApiUrl: process.env.PUBLIC_API_URL || null,
   
   jwt: {
     secret: process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production',

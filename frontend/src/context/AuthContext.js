@@ -106,6 +106,13 @@ export function AuthProvider({ children }) {
         loading,
         restoreError,
         sessionNotice,
+        updateUser: (updated) => {
+          if (updated?.id !== user?.id)
+            throw userError(
+              "We could not update your profile. Please sign in again.",
+            );
+          setUser(updated);
+        },
         useAnotherAccount: async () => {
           try {
             await signOut();

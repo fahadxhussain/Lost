@@ -32,6 +32,8 @@ async function authenticate(req, res, next) {
         rollNumber: true,
         status: true,
         emailVerifiedAt: true,
+        avatarUrl: true,
+        tokenVersion: true,
       },
     });
 
@@ -39,7 +41,10 @@ async function authenticate(req, res, next) {
       throw new UnauthorizedError('User account associated with this token no longer exists');
     }
 
-    req.user = user;
+    if ((decoded.tokenVersion || 0) !== user.tokenVersion) throw new UnauthorizedError('Your password changed. Please sign in again.');
+
+    const { tokenVersion, ...profile } = user;
+    req.user = profile;
     next();
   } catch (error) {
     next(error);

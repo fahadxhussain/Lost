@@ -224,7 +224,7 @@ export function AuthScreen({ navigation, route }) {
             error={fieldErrors.name}
             maxLength={LIMITS.name}
             editable={!busy}
-            placeholder="e.g. Fahad Hussain"
+            placeholder="e.g. Alex Khan"
             value={name}
             onChangeText={change("name", setName)}
             autoComplete="name"
@@ -241,7 +241,7 @@ export function AuthScreen({ navigation, route }) {
           editable={!busy}
           value={email}
           onChangeText={change("email", setEmail)}
-          placeholder="e.g. sp23-bse-011@isbstudent.comsats.edu.pk"
+          placeholder="e.g. fa25-bcs-000@isbstudent.comsats.edu.pk"
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
@@ -260,9 +260,7 @@ export function AuthScreen({ navigation, route }) {
           }
           editable={!busy}
           placeholder={
-            register
-              ? "Minimum 8 characters"
-              : "Enter your password"
+            register ? "Minimum 8 characters" : "Enter your password"
           }
           value={password}
           onChangeText={change("password", setPassword)}
@@ -327,6 +325,14 @@ export function AuthScreen({ navigation, route }) {
           />
         )}
         <ErrorNotice message={error} />
+        {!register && (
+          <Button
+            title="Forgot password?"
+            secondary
+            disabled={busy}
+            onPress={() => navigation.navigate("ForgotPassword", { email })}
+          />
+        )}
         <Button
           title={register ? "Create account" : "Sign in"}
           onPress={submit}

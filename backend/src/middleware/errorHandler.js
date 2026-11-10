@@ -1,6 +1,8 @@
 const logger = require('../shared/logger');
 
 function errorHandler(err, req, res, next) {
+  if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ status: 'fail', message: 'Choose a photo of 10 MB or less.' });
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') return res.status(400).json({ status: 'fail', message: 'Choose one photo for this upload.' });
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 

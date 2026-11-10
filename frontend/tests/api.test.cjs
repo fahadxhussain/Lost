@@ -253,3 +253,21 @@ test("concurrent expired requests share cleanup and a stale token cannot expire 
   await assert.rejects(api.authApi.getMe());
   assert.equal(cleanup, 1);
 });
+
+test("forgot password omits bearer tokens and profile updates use the authenticated multipart contract", async () => {
+  const { api, calls } = client();
+  await api.authApi.forgotPassword("student@isbstudent.comsats.edu.pk");
+  assert.equal(calls[0].url, "/auth/forgot-password");
+  assert.equal(calls[0].headers.Authorization, undefined);
+  assert.equal(
+    JSON.parse(calls[0].data).email,
+    "student@isbstudent.comsats.edu.pk",
+  );
+  const form = new FormData();
+  form.append("name", "New name");
+  await api.authApi.updateProfile(form);
+  assert.equal(calls[1].url, "/auth/me");
+  assert.equal(calls[1].method, "patch");
+  assert.equal(calls[1].headers.Authorization, "Bearer student-token");
+  assert.match(calls[1].headers["Content-Type"], /multipart\/form-data/);
+});

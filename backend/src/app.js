@@ -28,6 +28,12 @@ app.use(morgan(config.nodeEnv === 'development' ? 'dev' : 'combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/reset-password', (_req, res) => {
+  res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
+  res.sendFile(path.join(__dirname, '../public/reset-password.html'));
+});
+app.use('/account-assets', express.static(path.join(__dirname, '../public'), { index: false }));
+
 // Serve interactive Swagger OpenAPI documentation
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));

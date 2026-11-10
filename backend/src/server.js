@@ -5,6 +5,7 @@ const app = require('./app');
 const config = require('./config');
 const logger = require('./shared/logger');
 const messagingService = require('./modules/messaging/messaging.service');
+const prisma = require('./config/prisma');
 
 const server = http.createServer(app);
 
@@ -20,7 +21,7 @@ const io = new Server(server, {
 app.set('io', io);
 
 // Socket Authentication Middleware
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;
   if (!token) {
     return next(new Error('Authentication error: Token required'));
@@ -28,7 +29,21 @@ io.use((socket, next) => {
 
   try {
     const decoded = jwt.verify(token, config.jwt.secret);
+    const current = await prisma.user.findUnique({ where: { id: decoded.id } });
+    if (!current || current.status !== 'ACTIVE' || (decoded.tokenVersion || 0) !== current.tokenVersion) return next(new Error('Authentication error: Please sign in again'));
     socket.user = decoded;
+    socket.use(async (_packet, proceed) => {
+      try {
+        jwt.verify(token, config.jwt.secret);
+        const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+        if (!user || user.status !== 'ACTIVE' || (decoded.tokenVersion || 0) !== user.tokenVersion) {
+          socket.emit('session_expired');
+          socket.disconnect(true);
+          return proceed(new Error('Your session expired. Please sign in again.'));
+        }
+        proceed();
+      } catch { socket.disconnect(true); proceed(new Error('Authentication error')); }
+    });
     next();
   } catch (err) {
     next(new Error('Authentication error: Invalid token'));
@@ -36,6 +51,7 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+  socket.join(`user_${socket.user.id}`);
   logger.info(`[Socket.IO] Student connected: ${socket.user.email} (socket id: ${socket.id})`);
 
   // Join a conversation room

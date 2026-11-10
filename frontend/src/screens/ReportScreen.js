@@ -16,7 +16,6 @@ import {
   Notice,
   Photo,
   Screen,
-  Segments,
   s,
 } from "../components/ui";
 import { COLORS as C } from "../constants/theme";
@@ -166,7 +165,7 @@ export default function ReportScreen({ route, navigation }) {
               "Your report may have been saved, but we could not open it. Check My items before publishing again.",
             );
           setValues({
-            type: "FOUND",
+            type: values.type,
             title: "",
             description: "",
             categoryId: "",
@@ -191,14 +190,18 @@ export default function ReportScreen({ route, navigation }) {
         {editing ? "EDIT YOUR REPORT" : "ITEM DETAILS"}
       </Text>
       {!editing && (
-        <Segments
-          value={values.type}
-          onChange={set("type")}
-          options={[
-            { value: "LOST", label: "I lost something" },
-            { value: "FOUND", label: "I found something" },
-          ]}
-        />
+        <>
+          <Text style={s.heading}>
+            {values.type === "LOST"
+              ? "Tell us what you lost."
+              : "Tell us what you found."}
+          </Text>
+          <Text style={s.body}>
+            {values.type === "LOST"
+              ? "Include the last place you remember having it."
+              : "Include where you found it so the owner can recognise it."}
+          </Text>
+        </>
       )}
       <Pressable
         accessibilityRole="button"

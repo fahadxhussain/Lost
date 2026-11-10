@@ -79,6 +79,22 @@ class EmailService {
     console.log(`  Validity : ${config.university.otpExpiryMinutes} minutes`);
     console.log('======================================================\n');
   }
+
+  async sendPasswordReset(email, resetLink) {
+    if (!this.transporter || this.provider !== 'smtp') throw new Error('SMTP is not configured');
+    try {
+      await this.transporter.sendMail({
+        from: config.email.from,
+        to: email,
+        subject: 'Reset your password - COMSATS Lost & Found',
+        text: `A password reset was requested for your account.\n\nOpen this link to choose a new password:\n${resetLink}\n\nThis link expires in 15 minutes and works once. If you did not request it, ignore this email. Your password has not changed.`,
+      });
+    } catch (error) {
+      // Never log reset links, tokens, or SMTP credentials.
+      logger.error('Password reset email delivery failed', { code: error.code || 'MAIL_DELIVERY_FAILED' });
+      throw new Error('Password reset email delivery failed');
+    }
+  }
 }
 
 module.exports = new EmailService();

@@ -26,7 +26,9 @@ apiClient.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem(TOKEN_KEY);
   if (
     token &&
-    !/^\/auth\/(login|register|verify-otp|resend-otp)$/.test(config.url)
+    !/^\/auth\/(login|register|verify-otp|resend-otp|forgot-password|reset-password)$/.test(
+      config.url,
+    )
   )
     config.headers.Authorization = `Bearer ${token}`;
   return config;
@@ -113,6 +115,9 @@ export const authApi = {
   resendOtp: (data) => apiClient.post("/auth/resend-otp", data),
   login: (data) => apiClient.post("/auth/login", data),
   getMe: () => apiClient.get("/auth/me"),
+  updateProfile: (data) =>
+    apiClient.patch("/auth/me", data, uploadConfig(data)),
+  forgotPassword: (email) => apiClient.post("/auth/forgot-password", { email }),
 };
 export const categoriesApi = { getAll: () => apiClient.get("/categories") };
 function uploadConfig(data) {

@@ -11,7 +11,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.js",
     "prisma:seed:demo": "node prisma/seedDemo.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "test:account": "jest tests/account.unit.test.js --runInBand"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
