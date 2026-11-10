@@ -10,6 +10,7 @@ const { act } = renderer;
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 function harness() {
+  const HeaderHeightContext = React.createContext(96);
   const cache = new Map();
   const calls = [];
   const socketHandlers = new Map();
@@ -233,7 +234,7 @@ function harness() {
               }),
             };
           if (name === "@react-navigation/elements")
-            return { useHeaderHeight: () => 96 };
+            return { useHeaderHeight: () => 96, HeaderHeightContext };
           if (name === "@expo/vector-icons") return { Ionicons: "Icon" };
           if (name === "expo-image") return { Image: "CachedImage" };
           if (name === "@shopify/flash-list") return { FlashList };
@@ -1387,7 +1388,7 @@ test("selected tabs animate with the native driver and respect reduced motion", 
   act(() => tree.unmount());
 });
 
-test("chat composer uses the measured header offset and an accessible send icon", async () => {
+test("Android chat relies on window resize and removes bottom safe-area spacing when the keyboard opens", async () => {
   const h = harness();
   const { ChatScreen } = h.load("src/screens/ChatScreens.js");
   let tree;
@@ -1397,10 +1398,38 @@ test("chat composer uses the measured header offset and an accessible send icon"
     );
   });
   const keyboardView = tree.root.findByType("KeyboardAvoidingView");
-  assert.equal(keyboardView.props.keyboardVerticalOffset, 96);
-  assert.equal(keyboardView.props.behavior, "height");
+  assert.equal(keyboardView.props.keyboardVerticalOffset, 0);
+  assert.equal(keyboardView.props.enabled, false);
+  assert.equal(keyboardView.props.behavior, undefined);
+  const composer = () => input(tree, "Message").parent;
+  assert.equal(composer().props.style[1].paddingBottom, 20);
+  act(() => h.keyboardCallbacks.get("keyboardDidShow")());
+  assert.equal(composer().props.style[1].paddingBottom, 8);
+  act(() => h.keyboardCallbacks.get("keyboardDidHide")());
+  assert.equal(composer().props.style[1].paddingBottom, 20);
   assert.equal(sendButton(tree).findAllByType("Text").length, 0);
   assert.equal(sendButton(tree).props.disabled, true);
+  act(() => tree.unmount());
+});
+
+test("shared form keyboard handling uses the iOS header height and no inherited header offset inside modals", async () => {
+  const h = harness();
+  h.native.Platform.OS = "ios";
+  const { Screen, ModalScreen } = h.load("src/components/ui.js");
+  let tree;
+  await act(async () => {
+    tree = renderer.create(React.createElement(Screen));
+  });
+  let keyboardView = tree.root.findByType("KeyboardAvoidingView");
+  assert.equal(keyboardView.props.enabled, true);
+  assert.equal(keyboardView.props.behavior, "padding");
+  assert.equal(keyboardView.props.keyboardVerticalOffset, 96);
+  act(() => tree.unmount());
+  await act(async () => {
+    tree = renderer.create(React.createElement(ModalScreen));
+  });
+  keyboardView = tree.root.findByType("KeyboardAvoidingView");
+  assert.equal(keyboardView.props.keyboardVerticalOffset, 0);
   act(() => tree.unmount());
 });
 

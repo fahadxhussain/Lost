@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardVisible } from "../hooks/useKeyboardVisible";
 import Pressable from "../components/TouchTarget";
 import { useFocusEffect } from "@react-navigation/native";
 import {
@@ -112,6 +113,7 @@ export function ConversationsScreen({ navigation }) {
 export function ChatScreen({ route }) {
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisible();
   const { user, token } = useAuth();
   const id = route.params?.id;
   const [messages, setMessages] = useState([]);
@@ -335,7 +337,7 @@ export function ChatScreen({ route }) {
       <View
         style={[
           styles.composer,
-          { paddingBottom: Math.max(12, insets.bottom) },
+          { paddingBottom: keyboardVisible ? 8 : Math.max(12, insets.bottom) },
         ]}
       >
         <TextInput

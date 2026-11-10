@@ -13,6 +13,7 @@ import { Image } from "expo-image";
 import { FlashList } from "@shopify/flash-list";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { HeaderHeightContext } from "@react-navigation/elements";
 import { COLORS as C } from "../constants/theme";
 import { formatDate } from "../utils/reports";
 import Pressable from "./TouchTarget";
@@ -281,14 +282,19 @@ export function Screen({
   children,
   scroll = true,
   contentInsetAdjustmentBehavior = "automatic",
-  keyboardVerticalOffset = 0,
+  keyboardVerticalOffset,
   contentStyle,
 }) {
+  const headerHeight = React.useContext(HeaderHeightContext) || 0;
   return (
     <KeyboardAvoidingView
       style={s.page}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={keyboardVerticalOffset}
+      // Android's resize mode already supplies the keyboard-sized viewport.
+      enabled={Platform.OS === "ios"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={
+        Platform.OS === "ios" ? (keyboardVerticalOffset ?? headerHeight) : 0
+      }
     >
       {scroll ? (
         <ScrollView
@@ -309,7 +315,12 @@ export function ModalScreen({ children }) {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={s.page} edges={["top", "bottom", "left", "right"]}>
-        <Screen contentInsetAdjustmentBehavior="never">{children}</Screen>
+        <Screen
+          contentInsetAdjustmentBehavior="never"
+          keyboardVerticalOffset={0}
+        >
+          {children}
+        </Screen>
       </SafeAreaView>
     </SafeAreaProvider>
   );

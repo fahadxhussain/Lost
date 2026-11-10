@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Keyboard,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { StatusBar, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Pressable from "../components/TouchTarget";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
@@ -38,6 +31,7 @@ import ProfileScreen from "../screens/ProfileScreen";
 import AnimatedTabButton from "../components/AnimatedTabButton";
 import ReportChoiceScreen from "../screens/ReportChoiceScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
+import { useKeyboardVisible } from "../hooks/useKeyboardVisible";
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -98,7 +92,11 @@ function Header({ navigation, route, options, back }) {
           justifyContent: "center",
         }}
       >
-        <Ionicons name="key-outline" size={24} color="rgba(255, 255, 255, 0.16)" />
+        <Ionicons
+          name="key-outline"
+          size={24}
+          color="rgba(255, 255, 255, 0.16)"
+        />
       </View>
       <View
         pointerEvents="none"
@@ -116,7 +114,11 @@ function Header({ navigation, route, options, back }) {
           justifyContent: "center",
         }}
       >
-        <Ionicons name="wallet-outline" size={20} color="rgba(255, 255, 255, 0.14)" />
+        <Ionicons
+          name="wallet-outline"
+          size={20}
+          color="rgba(255, 255, 255, 0.14)"
+        />
       </View>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -223,21 +225,7 @@ function Header({ navigation, route, options, back }) {
 }
 function MainTabs({ navigation }) {
   const insets = useSafeAreaInsets();
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  useEffect(() => {
-    const show = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      () => setKeyboardVisible(true),
-    );
-    const hide = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => setKeyboardVisible(false),
-    );
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
+  const keyboardVisible = useKeyboardVisible();
   const icons = {
     Feed: "grid-outline",
     Watchlist: "radio-outline",
