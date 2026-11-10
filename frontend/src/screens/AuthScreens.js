@@ -240,7 +240,6 @@ export function AuthScreen({ navigation, route }) {
             fields.current.email = node;
           }}
           error={fieldErrors.email}
-          hint="Use your @isbstudent.comsats.edu.pk student email."
           maxLength={LIMITS.email}
           editable={!busy}
           value={email}
@@ -253,15 +252,11 @@ export function AuthScreen({ navigation, route }) {
         />
         <Field
           label="Password"
+          style={!register && styles.signInPassword}
           ref={(node) => {
             fields.current.password = node;
           }}
           error={fieldErrors.password}
-          hint={
-            register
-              ? "Use at least 8 characters. Your password is case-sensitive."
-              : "Your password is case-sensitive."
-          }
           editable={!busy}
           placeholder={
             register ? "Minimum 8 characters" : "Enter your password"
@@ -292,6 +287,17 @@ export function AuthScreen({ navigation, route }) {
             register ? () => fields.current.confirmation?.focus() : submit
           }
         />
+        {!register && (
+          <Pressable
+            accessibilityRole="link"
+            accessibilityState={{ disabled: busy }}
+            disabled={busy}
+            onPress={() => navigation.navigate("ForgotPassword", { email })}
+            style={[styles.recoveryLink, busy && { opacity: 0.5 }]}
+          >
+            <Text style={styles.authLinkText}>Forgot password?</Text>
+          </Pressable>
+        )}
         {register && (
           <Field
             label="Confirm password"
@@ -329,29 +335,30 @@ export function AuthScreen({ navigation, route }) {
           />
         )}
         <ErrorNotice message={error} />
-        {!register && (
-          <Button
-            title="Forgot password?"
-            secondary
-            disabled={busy}
-            onPress={() => navigation.navigate("ForgotPassword", { email })}
-          />
-        )}
         <Button
           title={register ? "Create account" : "Sign in"}
           onPress={submit}
           busy={busy}
         />
-        <Button
-          title={
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={
             register
               ? "Already registered? Sign in"
               : "New here? Create an account"
           }
-          secondary
+          accessibilityState={{ disabled: busy }}
           disabled={busy}
           onPress={() => navigation.replace(register ? "Login" : "Register")}
-        />
+          style={[styles.authSwitchLink, busy && { opacity: 0.5 }]}
+        >
+          <Text style={styles.authSwitchText}>
+            {register ? "Already registered? " : "New here? "}
+            <Text style={styles.authLinkText}>
+              {register ? "Sign in" : "Create an account"}
+            </Text>
+          </Text>
+        </Pressable>
       </View>
     </Screen>
   );
@@ -463,6 +470,23 @@ export function OtpScreen({ navigation, route }) {
   );
 }
 const styles = StyleSheet.create({
+  signInPassword: { marginBottom: 0 },
+  recoveryLink: {
+    alignSelf: "flex-end",
+    minHeight: 44,
+    justifyContent: "center",
+    paddingVertical: 8,
+  },
+  authLinkText: { color: C.primary, fontSize: 14, fontWeight: "600" },
+  authSwitchLink: {
+    alignSelf: "center",
+    minHeight: 48,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  authSwitchText: { color: C.textMuted, fontSize: 14, textAlign: "center" },
   welcome: { flex: 1, backgroundColor: C.primary },
   hero: {
     flexGrow: 1,

@@ -174,7 +174,16 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  bar: { backgroundColor: C.background, overflow: "visible" },
+  bar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: C.background,
+    overflow: "visible",
+    zIndex: 100,
+    elevation: 8,
+  },
   background: {
     position: "absolute",
     top: 12,
@@ -184,6 +193,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.cardBg,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+    boxShadow: "0px -4px 16px rgba(11, 48, 72, 0.08)",
   },
   cutout: {
     position: "absolute",
