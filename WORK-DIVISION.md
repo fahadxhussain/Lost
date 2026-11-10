@@ -2,11 +2,11 @@
 
 ## COMSATS Lost & Found (FYP)
 
-To enable you and your teammate to work concurrently without blocking each other, the project is split into two primary streams:
-- **Teammate 1: Backend, Database & AI Pipeline Lead**
-- **Teammate 2: Frontend & Mobile UI/UX Lead (React Native / Expo)**
+### Team Members & Assigned Domains
+- **Fahad (`fahadxhussain`)**: **Backend, Database & Gemini AI Matching Lead** (Working directory: [`backend/`](./backend/README.md))
+- **Ihtisham**: **Frontend & Mobile App Lead - React Native / Expo** (Working directory: [`frontend/`](./frontend/README.md))
 
-This document establishes the **work division**, **milestones**, **API contracts**, and **mocking guidelines** so frontend and backend work can progress simultaneously.
+This document establishes the **work division**, **milestones**, **API contracts**, and **mocking guidelines** so Fahad and Ihtisham can work concurrently without blocking each other.
 
 ---
 
@@ -16,9 +16,9 @@ This document establishes the **work division**, **milestones**, **API contracts
 +-----------------------------------------------------------------------------------+
 |                            COMSATS LOST & FOUND FYP                               |
 +-----------------------------------------+-----------------------------------------+
-|     TEAMMATE 1: Backend & AI Lead       |     TEAMMATE 2: Frontend & Mobile Lead  |
+|     FAHAD (Backend & AI Lead)           |     IHTISHAM (Frontend & Mobile Lead)   |
 +-----------------------------------------+-----------------------------------------+
-| • PostgreSQL schema & migrations        | • Expo / React Native project setup     |
+| • PostgreSQL schema & Prisma models     | • Expo / React Native mobile setup      |
 | • Express.js modular REST API           | • Design system, navigation & themes    |
 | • COMSATS email OTP verification        | • Auth screens (Login, Register, OTP)   |
 | • Report CRUD & image handling          | • Report creation & image picker forms  |
@@ -26,6 +26,7 @@ This document establishes the **work division**, **milestones**, **API contracts
 | • Candidate retrieval algorithm         | • Potential match alert UI & cards      |
 | • Async worker & Gemini API pipeline    | • Real-time chat & notification screen  |
 | • Security, validation & test suites    | • API client integration & state mgmt   |
+| • Working Directory: backend/           | • Working Directory: frontend/          |
 +-----------------------------------------+-----------------------------------------+
 ```
 
@@ -34,7 +35,7 @@ This document establishes the **work division**, **milestones**, **API contracts
 ## 2. Phased Simultaneous Milestones
 
 ### Milestone 1: Foundations & Auth Flow
-| Week / Sprint | Teammate 1 (Backend) | Teammate 2 (Frontend) |
+| Sprint | Fahad (Backend) | Ihtisham (Frontend) |
 |---|---|---|
 | **Phase 1A** | Initialize Express modular structure, Prisma ORM, PostgreSQL connection, DB migrations. | Initialize Expo React Native app with TypeScript/JS, React Navigation (stack + tabs). |
 | **Phase 1B** | Implement Registration endpoint (`@*.comsats.edu.pk` validation), OTP generation/hashing, and email service mock/sender. | Build Auth UI: Welcome, Register, OTP Verification, and Login screens with form validation. |
@@ -44,7 +45,7 @@ This document establishes the **work division**, **milestones**, **API contracts
 ---
 
 ### Milestone 2: Categories, Reports & Image Upload
-| Week / Sprint | Teammate 1 (Backend) | Teammate 2 (Frontend) |
+| Sprint | Fahad (Backend) | Ihtisham (Frontend) |
 |---|---|---|
 | **Phase 2A** | Seed category taxonomy (ensuring "Mobile Phone" and "Laptop Charger" are separate). Expose `GET /api/v1/categories`. | Build Category selection UI (grid or bottom sheet) and Home Feed tabs (Lost vs. Found). |
 | **Phase 2B** | Implement `POST /api/v1/reports` (validate mandatory category + description, optional image upload) and `GET /api/v1/reports`. | Build "Create Report" form with category dropdown, title, description, incident date/location picker, and Expo ImagePicker. |
@@ -54,7 +55,7 @@ This document establishes the **work division**, **milestones**, **API contracts
 ---
 
 ### Milestone 3: Search & Candidate Shortlisting
-| Week / Sprint | Teammate 1 (Backend) | Teammate 2 (Frontend) |
+| Sprint | Fahad (Backend) | Ihtisham (Frontend) |
 |---|---|---|
 | **Phase 3A** | Implement DB Search endpoint `GET /api/v1/reports/search` with keyword (`pg_trgm`/full-text), category, and type filters. | Build Search UI: Search bar, active filter chips (Category, Lost/Found, Date), and search results list. |
 | **Phase 3B** | Implement Candidate Retrieval algorithm: querying opposite-type active reports in the same category with text scoring. | Design and implement "Potential Matches" tab / screen showing shortlisted cards with match indicators. |
@@ -63,7 +64,7 @@ This document establishes the **work division**, **milestones**, **API contracts
 ---
 
 ### Milestone 4: Async Gemini Worker & Match Notifications
-| Week / Sprint | Teammate 1 (Backend) | Teammate 2 (Frontend) |
+| Sprint | Fahad (Backend) | Ihtisham (Frontend) |
 |---|---|---|
 | **Phase 4A** | Set up background queue table (`MatchingJob`) with row locking (`FOR UPDATE SKIP LOCKED`) and worker process. | Build Notification Center UI showing match alerts with read/unread indicators. |
 | **Phase 4B** | Integrate Google Gemini API service (structured JSON output for match score 0-1 and explanatory rationale). | Build "Match Detail Modal" showing AI confidence, reasoning summary, side-by-side comparison, and "Contact Finder/Owner" button. |
@@ -73,7 +74,7 @@ This document establishes the **work division**, **milestones**, **API contracts
 ---
 
 ### Milestone 5: In-App Messaging & Final Polish
-| Week / Sprint | Teammate 1 (Backend) | Teammate 2 (Frontend) |
+| Sprint | Fahad (Backend) | Ihtisham (Frontend) |
 |---|---|---|
 | **Phase 5A** | Implement messaging schema: conversations, messages, read receipts, and access control. | Build Chat screen (GiftedChat or custom) and Conversations list. |
 | **Phase 5B** | Real-time transport (Socket.IO or SSE) for instant message delivery between verified students. | Connect mobile chat client to real-time events with auto-scroll and send status. |
@@ -84,7 +85,7 @@ This document establishes the **work division**, **milestones**, **API contracts
 
 ## 3. Strict API Contracts (Interface Agreement)
 
-To ensure Teammate 2 can build screens with mock data while Teammate 1 writes endpoints, both agree to follow these exact payload formats:
+To ensure Ihtisham can build screens with mock data while Fahad writes endpoints, both agree to follow these exact payload formats:
 
 ### Auth Endpoints
 ```text
@@ -154,16 +155,13 @@ Response (200): {
 
 ## 4. Git Collaboration Workflow
 
-To keep the codebase clean and avoid merge conflicts:
-
 1. **Main Branch Protection:** `main` is always working and deployable.
 2. **Branch Naming:**
-   - Teammate 1 (Backend): `feature/backend-auth`, `feature/backend-reports`, `feature/gemini-worker`
-   - Teammate 2 (Frontend): `feature/ui-auth`, `feature/ui-reports`, `feature/ui-chat`
+   - Fahad (Backend): `feature/fahad-backend-auth`, `feature/fahad-reports`, `feature/fahad-gemini-worker`
+   - Ihtisham (Frontend): `feature/ihtisham-ui-auth`, `feature/ihtisham-ui-reports`, `feature/ihtisham-ui-chat`
 3. **Folder Isolation:**
-   - Teammate 1 works predominantly inside the `backend/` folder.
-   - Teammate 2 works predominantly inside the `frontend/` folder.
-   - Root changes (`package.json`, `README.md`, docs) should be coordinated.
+   - Fahad works strictly inside `backend/`.
+   - Ihtisham works strictly inside `frontend/`.
+   - Shared root files (`WORK-DIVISION.md`, `README.md`) are updated cooperatively.
 4. **Environment Variables:**
-   - Maintain `.env.example` inside `backend/` and `frontend/`.
-   - Never commit actual `.env` files with secret keys.
+   - Both use `.env.example` templates and never commit real `.env` secret keys.
