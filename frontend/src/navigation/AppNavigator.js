@@ -29,7 +29,7 @@ import {
 import NotificationsScreen from "../screens/NotificationsScreen";
 import { ChatScreen, ConversationsScreen } from "../screens/ChatScreens";
 import ProfileScreen from "../screens/ProfileScreen";
-import AnimatedTabButton from "../components/AnimatedTabButton";
+import FloatingTabBar from "../components/FloatingTabBar";
 import ReportChoiceScreen from "../screens/ReportChoiceScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import { useKeyboardVisible } from "../hooks/useKeyboardVisible";
@@ -227,55 +227,16 @@ function Header({ navigation, route, options, back }) {
 function MainTabs({ navigation }) {
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardVisible();
-  const icons = {
-    Feed: "grid-outline",
-    Watchlist: "radio-outline",
-    Messages: "chatbubbles-outline",
-    MyItems: "file-tray-outline",
-    Profile: "person-outline",
-  };
   return (
     <View style={{ flex: 1 }}>
       <Tabs.Navigator
-        screenOptions={({ route }) => ({
+        tabBar={(props) => <FloatingTabBar {...props} />}
+        screenOptions={{
           header: (props) => <Header {...props} />,
           sceneStyle: { backgroundColor: C.background },
           tabBarHideOnKeyboard: true,
-          tabBarButton: (props) => <AnimatedTabButton {...props} />,
-          tabBarLabelPosition: "below-icon",
-          tabBarActiveTintColor: C.primary,
-          tabBarInactiveTintColor: C.textMuted,
-          tabBarStyle: {
-            backgroundColor: C.cardBg,
-            borderTopWidth: 0,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            paddingTop: 8,
-            paddingBottom: Math.max(insets.bottom, 8),
-            height: 76 + Math.max(insets.bottom, 8),
-          },
-          tabBarItemStyle: { paddingVertical: 4 },
-          tabBarIconStyle: { width: 48, height: 34 },
-          tabBarLabelStyle: { fontSize: 10, lineHeight: 14, marginTop: 4 },
-          tabBarIcon: ({ focused, color }) => (
-            <View
-              style={{
-                width: 48,
-                height: 34,
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 20,
-                backgroundColor: focused ? C.primary : "transparent",
-              }}
-            >
-              <Icon
-                name={icons[route.name]}
-                size={22}
-                color={focused ? C.background : color}
-              />
-            </View>
-          ),
-        })}
+          tabBarStyle: { height: 84 + Math.max(insets.bottom, 8) },
+        }}
       >
         <Tabs.Screen
           name="Feed"
@@ -305,7 +266,7 @@ function MainTabs({ navigation }) {
           accessibilityLabel="Report"
           haptic="light"
           onPress={() => navigation.navigate("Report")}
-          style={[navStyles.fab, { bottom: 92 + Math.max(insets.bottom, 8) }]}
+          style={[navStyles.fab, { bottom: 100 + Math.max(insets.bottom, 8) }]}
         >
           <Icon name="add" size={24} />
           <Text style={navStyles.fabText}>Report</Text>
@@ -347,7 +308,7 @@ export default function AppNavigator() {
         screenOptions={{
           header: (props) => <Header {...props} />,
           contentStyle: { backgroundColor: C.background },
-          animation: 'slide_from_right',
+          animation: "slide_from_right",
           animationDuration: 280,
         }}
       >

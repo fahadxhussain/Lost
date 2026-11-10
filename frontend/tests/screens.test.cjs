@@ -164,6 +164,15 @@ function harness() {
   };
   native.Animated = {
     View: "AnimatedView",
+    timing: (value, config) => ({
+      start: () => value.setValue(config.toValue),
+      stop: () => {},
+    }),
+    sequence: (animations) => ({
+      start: () => animations.forEach((animation) => animation.start()),
+      stop: () => animations.forEach((animation) => animation.stop()),
+    }),
+    loop: (animation) => animation,
     Value: class {
       constructor(value) {
         this.value = value;
@@ -1349,41 +1358,167 @@ test("navigation starts on Main, replaces the report tab with Messages, and hide
   act(() => tree.unmount());
 });
 
-test("selected tabs animate with the native driver and respect reduced motion", async () => {
+function floatingTabProps(h, index = 0) {
+  const routes = ["Feed", "Watchlist", "Messages", "MyItems", "Profile"].map(
+    (name) => ({ key: name, name }),
+  );
+  return {
+    state: { index, routes },
+    descriptors: Object.fromEntries(
+      routes.map((route) => [
+        route.key,
+        {
+          options: {
+            title: route.name === "MyItems" ? "My Reports" : route.name,
+          },
+        },
+      ]),
+    ),
+    navigation: {
+      ...h.navigation,
+      emit: (event) => {
+        h.calls.push(["tab-event", event]);
+        return { defaultPrevented: false };
+      },
+    },
+  };
+}
+
+test("one floating selector and its cutout slide between tabs in both directions", async () => {
   const h = harness();
-  const Tab = h.load("src/components/AnimatedTabButton.js").default;
+  const Tab = h.load("src/components/FloatingTabBar.js").default;
   let tree;
   await act(async () => {
-    tree = renderer.create(
-      React.createElement(Tab, { "aria-selected": false }),
-    );
+    tree = renderer.create(React.createElement(Tab, floatingTabProps(h)));
   });
+  act(() =>
+    tree.root
+      .findByProps({ testID: "floating-tab-bar" })
+      .props.onLayout({ nativeEvent: { layout: { width: 390 } } }),
+  );
+  const selector = () =>
+    tree.root.findByProps({ testID: "floating-tab-selector" });
+  const cutout = () => tree.root.findByProps({ testID: "floating-tab-cutout" });
+  assert.equal(
+    selector().props.style[1].transform[0].translateX,
+    cutout().props.style[1].transform[0].translateX,
+  );
+  assert.equal(selector().props.style[1].transform[0].translateX.value, -2);
   h.calls.length = 0;
   await act(async () =>
-    tree.update(React.createElement(Tab, { "aria-selected": true })),
+    tree.update(React.createElement(Tab, floatingTabProps(h, 4))),
   );
   assert.ok(
     h.calls.some(
       ([kind, config]) =>
         kind === "tab-animation" &&
-        config.toValue === 1 &&
+        config.toValue === 310 &&
         config.useNativeDriver,
     ),
   );
-  act(() => tree.unmount());
-  h.native.AccessibilityInfo.isReduceMotionEnabled = async () => true;
-  h.calls.length = 0;
-  await act(async () => {
-    tree = renderer.create(
-      React.createElement(Tab, { "aria-selected": false }),
-    );
-  });
+  assert.equal(
+    tree.root.findAllByProps({ testID: "floating-tab-selector" }).length,
+    1,
+  );
   await act(async () =>
-    tree.update(React.createElement(Tab, { "aria-selected": true })),
+    tree.update(React.createElement(Tab, floatingTabProps(h, 1))),
+  );
+  assert.equal(selector().props.style[1].transform[0].translateX.value, 76);
+  assert.equal(
+    tree.root
+      .findAllByType("Pressable")
+      .find((node) => node.props.accessibilityLabel === "Watchlist").props
+      .accessibilityState.selected,
+    true,
+  );
+  act(() => tree.unmount());
+});
+
+test("floating tabs preserve navigation events, preventable presses, and keyboard hiding", async () => {
+  const h = harness();
+  const Tab = h.load("src/components/FloatingTabBar.js").default;
+  const props = floatingTabProps(h);
+  let tree;
+  await act(async () => {
+    tree = renderer.create(React.createElement(Tab, props));
+  });
+  act(() => button(tree, "Messages").props.onPress());
+  assert.ok(
+    h.calls.some(
+      ([kind, event]) =>
+        kind === "tab-event" &&
+        event.type === "tabPress" &&
+        event.target === "Messages",
+    ),
+  );
+  assert.ok(
+    h.calls.some(([kind, name]) => kind === "navigate" && name === "Messages"),
+  );
+  h.calls.length = 0;
+  act(() => button(tree, "Feed").props.onPress());
+  assert.equal(
+    h.calls.some(([kind]) => kind === "navigate"),
+    false,
+  );
+  act(() => button(tree, "Profile").props.onLongPress());
+  assert.ok(
+    h.calls.some(
+      ([kind, event]) => kind === "tab-event" && event.type === "tabLongPress",
+    ),
+  );
+  await act(async () =>
+    tree.update(
+      React.createElement(Tab, {
+        ...props,
+        navigation: {
+          ...props.navigation,
+          emit: () => ({ defaultPrevented: true }),
+        },
+      }),
+    ),
+  );
+  h.calls.length = 0;
+  act(() => button(tree, "Profile").props.onPress());
+  assert.equal(
+    h.calls.some(([kind]) => kind === "navigate"),
+    false,
+  );
+  act(() => h.keyboardCallbacks.get("keyboardDidShow")());
+  assert.equal(tree.toJSON(), null);
+  act(() => h.keyboardCallbacks.get("keyboardDidHide")());
+  assert.ok(button(tree, "Profile"));
+  act(() => tree.unmount());
+});
+
+test("floating selector snaps for reduced motion and stays centered after a width change", async () => {
+  const h = harness();
+  h.native.AccessibilityInfo.isReduceMotionEnabled = async () => true;
+  const Tab = h.load("src/components/FloatingTabBar.js").default;
+  let tree;
+  await act(async () => {
+    tree = renderer.create(React.createElement(Tab, floatingTabProps(h)));
+  });
+  act(() =>
+    tree.root
+      .findByProps({ testID: "floating-tab-bar" })
+      .props.onLayout({ nativeEvent: { layout: { width: 390 } } }),
+  );
+  await act(async () =>
+    tree.update(React.createElement(Tab, floatingTabProps(h, 2))),
   );
   assert.equal(
     h.calls.some(([kind]) => kind === "tab-animation"),
     false,
+  );
+  act(() =>
+    tree.root
+      .findByProps({ testID: "floating-tab-bar" })
+      .props.onLayout({ nativeEvent: { layout: { width: 600 } } }),
+  );
+  assert.equal(
+    tree.root.findByProps({ testID: "floating-tab-selector" }).props.style[1]
+      .transform[0].translateX.value,
+    259,
   );
   act(() => tree.unmount());
 });
