@@ -1,10 +1,10 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const source = fs.readFileSync(
-  require.resolve("../src/utils/reports.js"),
-  "utf8",
-);
+const validationUrl = `data:text/javascript;base64,${Buffer.from(fs.readFileSync(require.resolve("../src/utils/validation.js"), "utf8")).toString("base64")}`;
+const source = fs
+  .readFileSync(require.resolve("../src/utils/reports.js"), "utf8")
+  .replace('"./validation"', JSON.stringify(validationUrl));
 const helpers = import(
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
 );
@@ -32,6 +32,45 @@ test("incident dates reject impossible days and accept leap days", async () => {
   assert.equal(parseIncidentDate("2026-13-01"), null);
   assert.equal(parseIncidentDate("10/11/2026"), null);
   assert.ok(parseIncidentDate("2028-02-29"));
+});
+test("report checks use the incident calendar date, allow today and optional fields, and reject future dates", async () => {
+  const { reportErrors, validateReport } = await helpers;
+  const now = new Date(2026, 10, 10, 0, 1);
+  assert.equal(
+    validateReport(
+      {
+        ...values,
+        title: "",
+        incidentLocation: "",
+        incidentDate: "2026-11-10",
+      },
+      now,
+    ),
+    null,
+  );
+  assert.equal(
+    validateReport({ ...values, incidentDate: "2020-01-01" }, now),
+    null,
+  );
+  assert.match(
+    reportErrors({ ...values, incidentDate: "2026-11-11" }, now).incidentDate,
+    /future/,
+  );
+  assert.match(
+    reportErrors({ ...values, incidentDate: "2026-02-30" }, now).incidentDate,
+    /real date/,
+  );
+  const errors = reportErrors(
+    {
+      ...values,
+      title: "a".repeat(151),
+      description: "a".repeat(5001),
+      incidentLocation: "a".repeat(251),
+    },
+    now,
+  );
+  assert.equal(Object.keys(errors).length, 3);
+  assert.ok(reportErrors().description);
 });
 test("submission contains only supported fields and edit preserves category/type", async () => {
   const { reportFields } = await helpers;

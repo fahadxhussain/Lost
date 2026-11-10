@@ -213,7 +213,7 @@ function MainTabs() {
   );
 }
 export default function AppNavigator() {
-  const { user, loading, restoreError, restore, signOut } = useAuth();
+  const { user, loading, restoreError, restore, useAnotherAccount } = useAuth();
   if (loading)
     return (
       <Screen>
@@ -224,13 +224,7 @@ export default function AppNavigator() {
     return (
       <Screen>
         <ErrorNotice message={restoreError} onRetry={restore} />
-        <Button
-          title="Use another account"
-          onPress={async () => {
-            await signOut();
-            await restore();
-          }}
-        />
+        <Button title="Use another account" onPress={useAnotherAccount} />
       </Screen>
     );
   return (

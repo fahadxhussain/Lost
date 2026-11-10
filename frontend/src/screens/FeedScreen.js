@@ -7,6 +7,7 @@ import {
   reportsApi,
   searchApi,
   errorMessage,
+  userError,
 } from "../services/api";
 import {
   Button,
@@ -25,6 +26,7 @@ import {
   s,
 } from "../components/ui";
 import { hasNextPage } from "../utils/reports";
+import { LIMITS } from "../utils/validation";
 
 export default function FeedScreen({ navigation }) {
   const [type, setType] = useState("FOUND");
@@ -40,6 +42,7 @@ export default function FeedScreen({ navigation }) {
   const [error, setError] = useState("");
   const generation = useRef(0);
   const pending = useRef(false);
+  const failedPage = useRef(1);
   const openDetails = useCallback(
     (id) => navigation.navigate("Details", { id }),
     [navigation],
@@ -56,7 +59,12 @@ export default function FeedScreen({ navigation }) {
   }, [query]);
   const loadCategories = async () => {
     try {
-      setCategories((await categoriesApi.getAll()).data.data);
+      const categories = (await categoriesApi.getAll()).data.data;
+      if (!Array.isArray(categories))
+        throw userError(
+          "Categories could not be loaded. You can still search by keyword, or try loading categories again.",
+        );
+      setCategories(categories);
       setCategoryError("");
     } catch (err) {
       setCategoryError(errorMessage(err));
@@ -66,13 +74,16 @@ export default function FeedScreen({ navigation }) {
     loadCategories();
   }, []);
   const load = useCallback(
-    async (nextPage = 1) => {
+    async (nextPage = 1, reset = false) => {
       if (nextPage > 1 && pending.current) return;
       const request = ++generation.current;
       pending.current = true;
       setLoading(true);
       setError("");
-      if (nextPage === 1) setReports([]);
+      if (reset) {
+        setReports([]);
+        setPage(1);
+      }
       try {
         const params = {
           type,
@@ -85,6 +96,10 @@ export default function FeedScreen({ navigation }) {
           : await reportsApi.getAll(params);
         if (request !== generation.current) return;
         const result = response.data;
+        if (!Array.isArray(result.data))
+          throw userError(
+            "Items could not be loaded. Please refresh and try again.",
+          );
         setReports((old) =>
           nextPage === 1
             ? result.data
@@ -98,7 +113,10 @@ export default function FeedScreen({ navigation }) {
         setPage(nextPage);
         setMore(hasNextPage(result.pagination, result.data.length));
       } catch (err) {
-        if (request === generation.current) setError(errorMessage(err));
+        if (request === generation.current) {
+          failedPage.current = nextPage;
+          setError(errorMessage(err));
+        }
       } finally {
         if (request === generation.current) {
           setLoading(false);
@@ -110,7 +128,7 @@ export default function FeedScreen({ navigation }) {
   );
   useFocusEffect(
     useCallback(() => {
-      load();
+      load(1, true);
       return () => {
         ++generation.current;
         pending.current = false;
@@ -130,6 +148,8 @@ export default function FeedScreen({ navigation }) {
       </Pressable>
       <Field
         label="Search campus items"
+        maxLength={LIMITS.search}
+        hint="Search by item name, brand, or identifying details. Use the filters below to narrow the results."
         placeholder="Wallet, charger, student card…"
         value={query}
         onChangeText={setQuery}
@@ -156,7 +176,7 @@ export default function FeedScreen({ navigation }) {
       <Text style={s.cardTitle}>
         {search ? "Search results" : "Around your campus"}
       </Text>
-      <ErrorNotice message={error} onRetry={() => load()} />
+      <ErrorNotice message={error} onRetry={() => load(failedPage.current)} />
     </View>
   );
   return (
@@ -175,10 +195,28 @@ export default function FeedScreen({ navigation }) {
             <Loading />
           ) : !error ? (
             <Empty
-              title="Nothing here just yet."
-              body="Try another category or be the first to help something find its way home."
-              action="Report an item"
-              onAction={() => navigation.navigate("Report")}
+              title={
+                search || categoryId
+                  ? "No items match your search."
+                  : "Nothing here just yet."
+              }
+              body={
+                search || categoryId
+                  ? "Try a shorter keyword, check the spelling, choose another category, or switch between Lost and Found."
+                  : "Be the first to help something find its way home. Report an item to get started."
+              }
+              action={
+                search || categoryId
+                  ? "Clear search and filters"
+                  : "Report an item"
+              }
+              onAction={() => {
+                if (search || categoryId) {
+                  setQuery("");
+                  setSearch("");
+                  setCategoryId("");
+                } else navigation.navigate("Report");
+              }}
             />
           ) : null
         }

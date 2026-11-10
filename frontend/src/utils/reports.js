@@ -1,11 +1,35 @@
-export function validateReport(values) {
-  if (!["LOST", "FOUND"].includes(values.type)) return "Choose lost or found.";
-  if (!values.categoryId) return "Choose a category.";
-  if (values.description.trim().length < 10)
-    return "Describe the item in at least 10 characters.";
-  if (values.incidentDate && !parseIncidentDate(values.incidentDate))
-    return "Enter a valid incident date as YYYY-MM-DD.";
-  return null;
+import { LIMITS } from "./validation";
+
+export function reportErrors(values = {}, now = new Date()) {
+  const errors = {};
+  if (!["LOST", "FOUND"].includes(values.type))
+    errors.type = "Choose lost or found.";
+  if (!values.categoryId)
+    errors.categoryId = "Choose the category that best describes your item.";
+  if ((values.description || "").trim().length < 10)
+    errors.description =
+      "Describe the item in at least 10 characters, including its colour or identifying details.";
+  for (const field of ["title", "description", "incidentLocation"]) {
+    const max = LIMITS[field === "incidentLocation" ? "location" : field];
+    if ((values[field] || "").trim().length > max)
+      errors[field] =
+        `Keep ${field === "incidentLocation" ? "the location" : `the ${field}`} within ${max} characters.`;
+  }
+  if (values.incidentDate) {
+    if (!parseIncidentDate(values.incidentDate))
+      errors.incidentDate =
+        "Enter a real date as YYYY-MM-DD, for example 2026-11-01, or leave it blank.";
+    else {
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      if (values.incidentDate > today)
+        errors.incidentDate =
+          "The date lost or found cannot be in the future. Choose today or an earlier date.";
+    }
+  }
+  return errors;
+}
+export function validateReport(values, now) {
+  return Object.values(reportErrors(values, now))[0] || null;
 }
 export function parseIncidentDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;

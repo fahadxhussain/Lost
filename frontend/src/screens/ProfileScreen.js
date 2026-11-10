@@ -3,10 +3,12 @@ import { Text, View } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { Button, ErrorNotice, Icon, Notice, Screen, s } from "../components/ui";
 import { errorMessage } from "../services/api";
+import { useSubmission } from "../hooks/useSubmission";
 
 export default function ProfileScreen({ navigation }) {
   const { user, signOut } = useAuth();
   const [error, setError] = useState("");
+  const { busy, run } = useSubmission();
   return (
     <Screen>
       <View style={[s.card, s.row]}>
@@ -43,13 +45,17 @@ export default function ProfileScreen({ navigation }) {
       <ErrorNotice message={error} />
       <Button
         title="Sign out"
-        onPress={async () => {
-          try {
-            await signOut();
-          } catch (err) {
-            setError(errorMessage(err));
-          }
-        }}
+        busy={busy}
+        onPress={() =>
+          run(async () => {
+            setError("");
+            try {
+              await signOut();
+            } catch (err) {
+              setError(errorMessage(err));
+            }
+          })
+        }
       />
     </Screen>
   );

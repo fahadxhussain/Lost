@@ -18,29 +18,94 @@ export function createChatSocket(token) {
 }
 const apiClient = axios.create({ baseURL: API_BASE_URL, timeout: 15000 });
 let onUnauthorized;
+let expiringSession;
 export function setUnauthorizedHandler(handler) {
   onUnauthorized = handler;
 }
 apiClient.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem(TOKEN_KEY);
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (
+    token &&
+    !/^\/auth\/(login|register|verify-otp|resend-otp)$/.test(config.url)
+  )
+    config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401 && error.config?.headers?.Authorization)
-      await onUnauthorized?.();
+      try {
+        const currentToken = await AsyncStorage.getItem(TOKEN_KEY);
+        if (
+          currentToken &&
+          error.config.headers.Authorization === `Bearer ${currentToken}`
+        ) {
+          if (!expiringSession)
+            expiringSession = Promise.resolve()
+              .then(() => onUnauthorized?.())
+              .finally(() => {
+                expiringSession = null;
+              });
+          await expiringSession;
+        }
+      } catch {
+        /* Preserve the original API error. */
+      }
     return Promise.reject(error);
   },
 );
 export function errorMessage(error) {
-  return (
-    error.response?.data?.message ||
-    (error.request
-      ? "Cannot reach the campus server. Check your connection and try again."
-      : error.message || "Something went wrong. Please try again.")
-  );
+  const status = error?.response?.status;
+  const url = error?.config?.url || "";
+  const message = error?.response?.data?.message;
+  const safeMessage =
+    typeof message === "string" &&
+    message.trim().length > 0 &&
+    message.length <= 350 &&
+    !/[<>\n]|prisma|sql|ECONN|TypeError|stack|constraint|\.js:\d/i.test(message)
+      ? message
+      : null;
+  if (error?.userFacing) return error.message;
+  if (["ECONNABORTED", "ETIMEDOUT"].includes(error?.code))
+    return "The server took too long to respond. Check your connection and try again. If you were publishing or sending, check whether it went through before retrying.";
+  if (status === 429) {
+    const retry = Number(error.response.headers?.["retry-after"]);
+    return Number.isFinite(retry) && retry > 0
+      ? `Too many attempts. Please wait ${Math.ceil(retry / 60)} minute${retry > 60 ? "s" : ""} before trying again.`
+      : safeMessage ||
+          "Too many attempts. Please wait a few minutes before trying again.";
+  }
+  if (status >= 500)
+    return "The campus server is having trouble right now. Please try again later. If you were publishing or sending, check whether it went through before retrying.";
+  if (status === 413)
+    return "This upload is too large. Choose a photo of 10 MB or less, or continue without a photo.";
+  if (status === 401)
+    return error?.config?.url === "/auth/login"
+      ? "The email or password is incorrect. Check both and try again."
+      : "Your session has expired. Please sign in again.";
+  if (status === 404)
+    return url.startsWith("/auth/")
+      ? "We could not find that student account. Check your email or create an account first."
+      : url.startsWith("/conversations/")
+        ? "This conversation is no longer available. Go back to Messages and refresh."
+        : "This item is no longer available. Go back to the feed or My items and refresh.";
+  // Keep useful operational errors, but never render stack traces, HTML or DB details.
+  if (safeMessage) return safeMessage;
+  if (status === 403)
+    return "You do not have access to this action. Make sure your campus email is verified and try again.";
+  if (status === 409)
+    return "This action conflicts with an existing record. Refresh first; if you are registering, try signing in instead.";
+  if (status === 400 || status === 422)
+    return "Some details could not be accepted. Check your entries and try again.";
+  if (error?.request || error?.code === "ERR_NETWORK")
+    return "Cannot reach the campus server. Check your internet connection and try again.";
+  return "Something went wrong. Please try again.";
+}
+export function userError(message) {
+  const error = new Error(message);
+  error.userFacing = true;
+  return error;
 }
 export const authApi = {
   register: (data) => apiClient.post("/auth/register", data),

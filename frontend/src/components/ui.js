@@ -46,21 +46,40 @@ export function Button({ title, onPress, busy, disabled, secondary, style }) {
     </Pressable>
   );
 }
-export function Field({ label, style, ...props }) {
+export const Field = React.forwardRef(function Field(
+  { label, style, error, hint, ...props },
+  ref,
+) {
   return (
     <View style={[{ gap: 6, marginBottom: 14 }, style]}>
       <Text style={s.label}>{label}</Text>
       <TextInput
+        ref={ref}
+        accessibilityLabel={label}
+        accessibilityHint={error || hint}
+        aria-invalid={!!error}
         placeholderTextColor={C.placeholder}
         style={[
           s.input,
           props.multiline && { minHeight: 94, textAlignVertical: "top" },
+          error && { borderColor: C.danger },
         ]}
         {...props}
       />
+      {error ? (
+        <Text
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          style={[s.label, { color: C.danger }]}
+        >
+          {error}
+        </Text>
+      ) : hint ? (
+        <Text style={s.label}>{hint}</Text>
+      ) : null}
     </View>
   );
-}
+});
 export function Chips({ options, value, onChange }) {
   return (
     <ScrollView
@@ -135,7 +154,11 @@ export function Notice({ title, children, dark }) {
 export function ErrorNotice({ message, onRetry }) {
   if (!message) return null;
   return (
-    <View accessibilityRole="alert" style={s.notice}>
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      style={s.notice}
+    >
       <Text style={{ color: C.danger }}>{message}</Text>
       {onRetry && <Button title="Try again" onPress={onRetry} secondary />}
     </View>

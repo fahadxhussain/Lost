@@ -1,7 +1,14 @@
 import React, { useCallback, useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { chatApi, createChatSocket, errorMessage } from "../services/api";
+import {
+  chatApi,
+  createChatSocket,
+  errorMessage,
+  userError,
+} from "../services/api";
+import { LIMITS } from "../utils/validation";
+import { useSubmission } from "../hooks/useSubmission";
 import { useAuth } from "../context/AuthContext";
 import { useResource } from "../hooks/useResource";
 import {
@@ -70,13 +77,15 @@ export function ConversationsScreen({ navigation }) {
         ListEmptyComponent={
           <>
             {resource.loading && !resource.data && <Loading />}
-            {resource.data?.length === 0 && (
-              <Empty
-                title="Start a conversation."
-                body="Contact a student from an item or potential match to start messaging."
-                icon="chatbubbles-outline"
-              />
-            )}
+            {!resource.loading &&
+              !resource.error &&
+              resource.data?.length === 0 && (
+                <Empty
+                  title="Start a conversation."
+                  body="Contact a student from an item or potential match to start messaging."
+                  icon="chatbubbles-outline"
+                />
+              )}
           </>
         }
         ListFooterComponent={
@@ -92,16 +101,19 @@ export function ConversationsScreen({ navigation }) {
 }
 export function ChatScreen({ route }) {
   const { user, token } = useAuth();
-  const id = route.params.id;
+  const id = route.params?.id;
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useSubmission();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sendError, setSendError] = useState("");
   const [connected, setConnected] = useState(false);
   const socketRef = useRef(null);
   const alive = useRef(false);
   const activeConversation = useRef(id);
+  const generation = useRef(0);
+  const refreshing = useRef(false);
   const list = useRef(null);
   const nearBottom = useRef(true);
   const trackScroll = useCallback(
@@ -130,27 +142,56 @@ export function ChatScreen({ route }) {
     [],
   );
   const refresh = useCallback(async () => {
+    if (!id || refreshing.current) return;
+    const request = generation.current;
+    refreshing.current = true;
     try {
       const response = await chatApi.getMessages(id);
-      if (alive.current && activeConversation.current === id) {
+      if (
+        alive.current &&
+        request === generation.current &&
+        activeConversation.current === id
+      ) {
         add(response.data.data);
         setError("");
       }
     } catch (err) {
-      if (alive.current && activeConversation.current === id)
+      if (
+        alive.current &&
+        request === generation.current &&
+        activeConversation.current === id
+      )
         setError(errorMessage(err));
     } finally {
-      if (alive.current && activeConversation.current === id) setLoading(false);
+      if (request === generation.current) {
+        refreshing.current = false;
+        if (alive.current) setLoading(false);
+      }
     }
   }, [id, add]);
   useFocusEffect(
     useCallback(() => {
+      ++generation.current;
+      refreshing.current = false;
       alive.current = true;
+      if (activeConversation.current !== id) setDraft("");
       activeConversation.current = id;
       setMessages([]);
       setLoading(true);
-      setBusy(false);
+      setConnected(false);
+      setError("");
+      setSendError("");
       nearBottom.current = true;
+      if (!id) {
+        setLoading(false);
+        setError(
+          "This conversation could not be opened. Go back to Messages and select it again.",
+        );
+        return () => {
+          alive.current = false;
+          ++generation.current;
+        };
+      }
       refresh();
       const socket = createChatSocket(token);
       socketRef.current = socket;
@@ -171,6 +212,7 @@ export function ChatScreen({ route }) {
       const timer = setInterval(refresh, 6000);
       return () => {
         alive.current = false;
+        ++generation.current;
         clearInterval(timer);
         socket.emit("leave_conversation", { conversationId: id });
         socket.disconnect();
@@ -180,46 +222,64 @@ export function ChatScreen({ route }) {
   );
   async function send() {
     const content = draft.trim();
-    if (!content || busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      let message;
-      const socket = socketRef.current;
-      if (socket?.connected) {
-        message = await new Promise((resolve, reject) => {
-          socket
-            .timeout(10000)
-            .emit(
-              "send_message",
-              { conversationId: id, content },
-              (timeout, result) => {
-                if (timeout)
-                  reject(
-                    new Error(
-                      "Delivery could not be confirmed. Refresh messages before retrying.",
-                    ),
-                  );
-                else if (result?.status !== "ok")
-                  reject(
-                    new Error(result?.message || "Message could not be sent."),
-                  );
-                else resolve(result.data);
-              },
-            );
-        });
-      } else message = (await chatApi.sendMessage(id, content)).data.data;
-      if (alive.current && activeConversation.current === id) {
-        nearBottom.current = true;
-        add([message]);
-        setDraft("");
+    if (!id || !content || busy) return;
+    if (content.length > LIMITS.message)
+      return setSendError(
+        `Keep your message within ${LIMITS.message} characters.`,
+      );
+    const request = generation.current;
+    setSendError("");
+    return run(async () => {
+      try {
+        let message;
+        const socket = socketRef.current;
+        if (socket?.connected) {
+          message = await new Promise((resolve, reject) => {
+            socket
+              .timeout(10000)
+              .emit(
+                "send_message",
+                { conversationId: id, content },
+                (timeout, result) => {
+                  if (timeout)
+                    reject(
+                      userError(
+                        "Delivery could not be confirmed. Refresh messages before retrying.",
+                      ),
+                    );
+                  else if (result?.status !== "ok")
+                    reject(
+                      userError(
+                        "Message could not be sent. Your message is still here; check your connection and try again.",
+                      ),
+                    );
+                  else resolve(result.data);
+                },
+              );
+          });
+        } else message = (await chatApi.sendMessage(id, content)).data.data;
+        if (!message?.id)
+          throw userError(
+            "Delivery could not be confirmed. Refresh messages before retrying.",
+          );
+        if (
+          alive.current &&
+          request === generation.current &&
+          activeConversation.current === id
+        ) {
+          nearBottom.current = true;
+          add([message]);
+          setDraft("");
+        }
+      } catch (err) {
+        if (
+          alive.current &&
+          request === generation.current &&
+          activeConversation.current === id
+        )
+          setSendError(errorMessage(err));
       }
-    } catch (err) {
-      if (alive.current && activeConversation.current === id)
-        setError(errorMessage(err));
-    } finally {
-      if (alive.current && activeConversation.current === id) setBusy(false);
-    }
+    });
   }
   return (
     <Screen scroll={false}>
@@ -228,7 +288,7 @@ export function ChatScreen({ route }) {
           ? "Connected · Campus conversation"
           : "Reconnecting · Checking for new messages"}
       </Text>
-      <ErrorNotice message={error} onRetry={refresh} />
+      <ErrorNotice message={error} onRetry={id ? refresh : undefined} />
       {loading && <Loading />}
       <DataList
         ref={list}
@@ -250,21 +310,36 @@ export function ChatScreen({ route }) {
         }
         renderItem={renderMessage}
       />
+      <ErrorNotice message={sendError} />
+      {draft.length > LIMITS.message && (
+        <Text
+          accessibilityRole="alert"
+          style={[s.label, { color: C.danger, paddingHorizontal: 14 }]}
+        >
+          Keep your message within {LIMITS.message} characters ({draft.length}{" "}
+          entered).
+        </Text>
+      )}
       <View style={[s.row, { backgroundColor: C.cardBg }]}>
         <TextInput
           accessibilityLabel="Message"
           placeholder="Write a message…"
           placeholderTextColor={C.placeholder}
-          editable={!busy}
+          editable={!busy && !!id}
           multiline
           value={draft}
-          onChangeText={setDraft}
+          onChangeText={(value) => {
+            setDraft(value);
+            setSendError("");
+          }}
           style={[s.input, { flex: 1, maxHeight: 110 }]}
         />
         <Button
           title="Send"
           onPress={send}
-          disabled={!draft.trim()}
+          disabled={
+            !id || !draft.trim() || draft.trim().length > LIMITS.message
+          }
           busy={busy}
         />
       </View>

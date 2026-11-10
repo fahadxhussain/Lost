@@ -7,11 +7,33 @@ const babel = require("@babel/core");
 const React = require("react");
 const renderer = require("react-test-renderer");
 const { act } = renderer;
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 function harness() {
   const cache = new Map();
   const calls = [];
   const socketHandlers = new Map();
+  let now = Date.now();
+  class TestDate extends Date {
+    constructor(...args) {
+      super(...(args.length ? args : [now]));
+    }
+    static now() {
+      return now;
+    }
+  }
+  const intervals = new Set();
+  const storage = {
+    getItem: async () => null,
+    setItem: async () => {},
+    removeItem: async () => {},
+  };
+  const picker = {
+    requestCameraPermissionsAsync: async () => ({ granted: true }),
+    requestMediaLibraryPermissionsAsync: async () => ({ granted: true }),
+    launchCameraAsync: async () => ({ canceled: true }),
+    launchImageLibraryAsync: async () => ({ canceled: true }),
+  };
   const socket = {
     on: (event, handler) => {
       socketHandlers.set(event, handler);
@@ -41,6 +63,9 @@ function harness() {
   const api = {
     createChatSocket: () => socket,
     errorMessage: (err) => err.message,
+    userError: (message) => new Error(message),
+    setUnauthorizedHandler: () => {},
+    TOKEN_KEY: "token",
     notificationsApi: {
       markRead: async (id) => {
         calls.push(["notification-read", id]);
@@ -64,6 +89,18 @@ function harness() {
       update: async () => ({}),
     },
     authApi: {
+      register: async (payload) => {
+        calls.push(["register", payload]);
+        return { data: { data: { userId: "new-user" } } };
+      },
+      verifyOtp: async (payload) => {
+        calls.push(["verify", payload]);
+        return { data: { data: {} } };
+      },
+      resendOtp: async () => {
+        calls.push(["resend"]);
+        return {};
+      },
       login: async (payload) => {
         calls.push(["login", payload]);
         return { data: { data: { token: "real-token", user: auth.user } } };
@@ -97,6 +134,7 @@ function harness() {
   };
   native.StyleSheet = { create: (value) => value };
   native.Alert = { alert: (...args) => calls.push(["alert", ...args]) };
+  native.Linking = { openSettings: async () => calls.push(["settings"]) };
   function load(file) {
     const filename = path.resolve(__dirname, "..", file);
     if (cache.has(filename)) return cache.get(filename);
@@ -113,8 +151,12 @@ function harness() {
         process,
         console,
         FormData,
-        setInterval,
-        clearInterval,
+        Date: TestDate,
+        setInterval: (callback) => {
+          intervals.add(callback);
+          return callback;
+        },
+        clearInterval: (callback) => intervals.delete(callback),
         setTimeout,
         clearTimeout,
         require: (name) => {
@@ -132,7 +174,9 @@ function harness() {
               SafeAreaView: "SafeAreaView",
               SafeAreaProvider: "SafeAreaProvider",
             };
-          if (name === "expo-image-picker") return {};
+          if (name === "expo-image-picker") return picker;
+          if (name === "@react-native-async-storage/async-storage")
+            return storage;
           if (name === "expo-haptics")
             return {
               ImpactFeedbackStyle: { Light: "light" },
@@ -175,6 +219,14 @@ function harness() {
   };
   return {
     load,
+    api,
+    auth,
+    picker,
+    storage,
+    advanceTime: (ms) => {
+      now += ms;
+      intervals.forEach((tick) => tick());
+    },
     calls,
     navigation,
     socketHandlers,
@@ -271,7 +323,7 @@ test("sign-in screen sends normalized university email and accepts nested backen
     h.calls.find(([kind]) => kind === "session")[1].token,
     "real-token",
   );
-  tree.unmount();
+  act(() => tree.unmount());
 });
 test("report screen rejects photo-only input and publishes a valid text-only report", async () => {
   const h = harness();
@@ -314,7 +366,7 @@ test("report screen rejects photo-only input and publishes a valid text-only rep
         kind === "navigate" && screen === "Matches" && params.id === "new",
     ),
   );
-  tree.unmount();
+  act(() => tree.unmount());
 });
 test("report details exposes edit/status only to the report owner and opens contact via API", async () => {
   const h = harness();
@@ -349,7 +401,7 @@ test("report details exposes edit/status only to the report owner and opens cont
   assert.ok(
     h.calls.some(([kind, screen]) => kind === "navigate" && screen === "Chat"),
   );
-  tree.unmount();
+  act(() => tree.unmount());
 });
 
 test("memoized report rows skip unchanged poll results and keep navigation tied to the displayed item", async () => {
@@ -386,7 +438,7 @@ test("memoized report rows skip unchanged poll results and keep navigation tied 
   );
   act(() => tree.root.findByType("Pressable").props.onPress());
   assert.equal(h.calls.find(([kind]) => kind === "open-report")[1], "r2");
-  tree.unmount();
+  act(() => tree.unmount());
 });
 
 test("recycled photo cells recover after failure and do not apply an old error to a new image", async () => {
@@ -411,7 +463,7 @@ test("recycled photo cells recover after failure and do not apply an old error t
   assert.equal(image.props.source, "https://campus/second.jpg");
   assert.equal(image.props.recyclingKey, image.props.source);
   assert.equal(image.props.cachePolicy, "memory-disk");
-  tree.unmount();
+  act(() => tree.unmount());
 });
 
 test("Watchlist virtualizes lost reports and preserves item and match navigation", async () => {
@@ -455,8 +507,8 @@ test("Watchlist virtualizes lost reports and preserves item and match navigation
         kind === "navigate" && screen === "Matches" && params.id === "lost",
     ),
   );
-  row.unmount();
-  tree.unmount();
+  act(() => row.unmount());
+  act(() => tree.unmount());
 });
 
 test("match explanation opens with modal safe areas and contacts the correct match participant", async () => {
@@ -504,8 +556,8 @@ test("match explanation opens with modal safe areas and contacts the correct mat
   const contact = h.calls.find(([kind]) => kind === "conversation")[1];
   assert.equal(contact.matchId, "m1");
   assert.equal(contact.otherUserId, "finder");
-  row.unmount();
-  tree.unmount();
+  act(() => row.unmount());
+  act(() => tree.unmount());
 });
 
 test("virtualized conversation rows retain stable render callbacks across polling responses", async () => {
@@ -553,8 +605,8 @@ test("virtualized conversation rows retain stable render callbacks across pollin
         params.name === "Finder",
     ),
   );
-  row.unmount();
-  tree.unmount();
+  act(() => row.unmount());
+  act(() => tree.unmount());
 });
 
 test("virtualized notification rows mark the selected notification read and open its candidate", async () => {
@@ -591,8 +643,8 @@ test("virtualized notification rows mark the selected notification read and open
         kind === "navigate" && screen === "Details" && params.id === "found",
     ),
   );
-  row.unmount();
-  tree.unmount();
+  act(() => row.unmount());
+  act(() => tree.unmount());
 });
 
 test("chat keeps row callbacks stable while typing and follows new messages only near the bottom", async () => {
@@ -644,5 +696,486 @@ test("chat keeps row callbacks stable while typing and follows new messages only
   );
   act(() => list().props.onContentSizeChange());
   assert.equal(h.calls.filter(([kind]) => kind === "scroll-to-end").length, 1);
+  act(() => tree.unmount());
+});
+
+const input = (tree, label) =>
+  tree.root
+    .findAllByType("TextInput")
+    .find((node) => node.props.accessibilityLabel === label);
+const visibleText = (tree) =>
+  tree.root
+    .findAllByType("Text")
+    .map((node) => node.props.children)
+    .flat(Infinity)
+    .filter((text) => typeof text === "string" || typeof text === "number")
+    .join(" ")
+    .replace(/\s+/g, " ");
+
+test("registration shows field errors and requires matching passwords before calling the API", async () => {
+  const h = harness();
+  const { AuthScreen } = h.load("src/screens/AuthScreens.js");
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(AuthScreen, {
+        navigation: h.navigation,
+        route: { name: "Register" },
+      }),
+    );
+  });
+  await act(async () => {
+    await button(tree, "Create account").props.onPress();
+  });
+  assert.equal(
+    h.calls.some(([kind]) => kind === "register"),
+    false,
+  );
+  assert.equal(input(tree, "Your name").props["aria-invalid"], true);
+  act(() => {
+    input(tree, "Your name").props.onChangeText(" Alex Khan ");
+    input(tree, "Student email").props.onChangeText(
+      " FA25-BCS-000@ISBSTUDENT.COMSATS.EDU.PK ",
+    );
+    input(tree, "Password").props.onChangeText("password123");
+    input(tree, "Confirm password").props.onChangeText("different");
+  });
+  await act(async () => {
+    await button(tree, "Create account").props.onPress();
+  });
+  assert.match(visibleText(tree), /Passwords do not match/);
+  assert.equal(
+    h.calls.some(([kind]) => kind === "register"),
+    false,
+  );
+  act(() => input(tree, "Confirm password").props.onChangeText("password123"));
+  await act(async () => {
+    await button(tree, "Create account").props.onPress();
+  });
+  const payload = h.calls.find(([kind]) => kind === "register")[1];
+  assert.equal(payload.name, "Alex Khan");
+  assert.equal(payload.email, "fa25-bcs-000@isbstudent.comsats.edu.pk");
+  assert.equal("confirmation" in payload, false);
+  assert.ok(
+    h.calls.some(
+      ([kind, screen]) => kind === "navigate" && screen === "VerifyOtp",
+    ),
+  );
+  act(() => tree.unmount());
+});
+
+test("rapid sign-in submissions send one request and a failed sign-in keeps entered credentials", async () => {
+  const h = harness();
+  const { AuthScreen } = h.load("src/screens/AuthScreens.js");
+  let release,
+    requests = 0,
+    tree;
+  h.api.authApi.login = () => {
+    requests++;
+    return new Promise((resolve, reject) => {
+      release = () => reject(new Error("Check your email or password."));
+    });
+  };
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(AuthScreen, {
+        navigation: h.navigation,
+        route: { name: "Login" },
+      }),
+    );
+  });
+  act(() => {
+    input(tree, "Student email").props.onChangeText(
+      "student@isbstudent.comsats.edu.pk",
+    );
+    input(tree, "Password").props.onChangeText("password123");
+  });
+  const submit = input(tree, "Password").props.onSubmitEditing;
+  await act(async () => {
+    const first = submit();
+    const second = submit();
+    assert.equal(requests, 1);
+    release();
+    await Promise.all([first, second]);
+  });
+  assert.equal(input(tree, "Password").props.value, "password123");
+  assert.match(visibleText(tree), /Check your email or password/);
+  act(() => tree.unmount());
+});
+
+test("OTP guards missing account context and resend cooldown, including time spent in background", async () => {
+  const h = harness();
+  const { OtpScreen } = h.load("src/screens/AuthScreens.js");
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(OtpScreen, { navigation: h.navigation, route: {} }),
+    );
+  });
+  assert.equal(button(tree, "Verify email").props.disabled, true);
+  act(() => tree.unmount());
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(OtpScreen, {
+        navigation: h.navigation,
+        route: {
+          params: {
+            userId: "student",
+            email: "student@isbstudent.comsats.edu.pk",
+          },
+        },
+      }),
+    );
+  });
+  await act(async () => {
+    await button(tree, "Resend code in 30s").props.onPress();
+  });
+  assert.equal(
+    h.calls.some(([kind]) => kind === "resend"),
+    false,
+  );
+  act(() => h.advanceTime(60000));
+  await act(async () => {
+    await button(tree, "Resend code").props.onPress();
+  });
+  assert.equal(h.calls.filter(([kind]) => kind === "resend").length, 1);
+  assert.match(visibleText(tree), /older codes no longer work/);
+  act(() => input(tree, "Verification code").props.onChangeText("12 34 56"));
+  assert.equal(input(tree, "Verification code").props.value, "123456");
+  await act(async () => {
+    await button(tree, "Verify email").props.onPress();
+  });
+  assert.ok(
+    h.calls.some(
+      ([kind, screen, params]) =>
+        kind === "replace" && screen === "Login" && params.verified,
+    ),
+  );
+  act(() => tree.unmount());
+});
+
+test("report photo denial offers settings and a canceled picker keeps the form intact", async () => {
+  const h = harness();
+  h.picker.requestCameraPermissionsAsync = async () => ({ granted: false });
+  const Report = h.load("src/screens/ReportScreen.js").default;
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(Report, { navigation: h.navigation, route: {} }),
+    );
+  });
+  act(() =>
+    input(tree, "Description · Required").props.onChangeText(
+      "Black phone with a case",
+    ),
+  );
+  await act(async () => {
+    await button(tree, "Take a photo").props.onPress();
+  });
+  assert.match(visibleText(tree), /Allow camera access/);
+  await act(async () => {
+    await button(tree, "Open device settings").props.onPress();
+  });
+  assert.ok(h.calls.some(([kind]) => kind === "settings"));
+  await act(async () => {
+    await button(tree, "Choose from gallery").props.onPress();
+  });
+  assert.equal(
+    input(tree, "Description · Required").props.value,
+    "Black phone with a case",
+  );
+  act(() => tree.unmount());
+});
+
+test("category outage cannot publish an invalid report and recovery makes the category selectable", async () => {
+  const h = harness();
+  const Report = h.load("src/screens/ReportScreen.js").default;
+  h.api.categoriesApi.getAll = async () => ({ data: { data: [] } });
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(Report, { navigation: h.navigation, route: {} }),
+    );
+  });
+  assert.match(visibleText(tree), /No categories are available/);
+  act(() =>
+    input(tree, "Description · Required").props.onChangeText(
+      "Black phone with a case",
+    ),
+  );
+  await act(async () => {
+    await button(tree, "Publish found report").props.onPress();
+  });
+  assert.equal(
+    h.calls.some(([kind]) => kind === "create"),
+    false,
+  );
+  h.api.categoriesApi.getAll = async () => ({
+    data: { data: [{ id: "phone", name: "Mobile Phone" }] },
+  });
+  await act(async () => {
+    await button(tree, "Try again").props.onPress();
+  });
+  act(() => button(tree, "Mobile Phone").props.onPress());
+  await act(async () => {
+    await button(tree, "Publish found report").props.onPress();
+  });
+  assert.ok(h.calls.some(([kind]) => kind === "create"));
+  act(() => tree.unmount());
+});
+
+test("chat preserves failed drafts and send errors across background refresh, then recovers", async () => {
+  const h = harness();
+  const { ChatScreen } = h.load("src/screens/ChatScreens.js");
+  h.api.chatApi.sendMessage = async () => {
+    throw new Error("Cannot reach the campus server.");
+  };
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(ChatScreen, { route: { params: { id: "c1" } } }),
+    );
+  });
+  act(() => input(tree, "Message").props.onChangeText("Is this your wallet?"));
+  await act(async () => {
+    await button(tree, "Send").props.onPress();
+  });
+  assert.equal(input(tree, "Message").props.value, "Is this your wallet?");
+  await act(async () => h.advanceTime(6000));
+  assert.match(visibleText(tree), /Cannot reach the campus server/);
+  h.api.chatApi.sendMessage = async (id, content) => ({
+    data: {
+      data: {
+        id: "m1",
+        content,
+        senderId: "me",
+        createdAt: new Date().toISOString(),
+      },
+    },
+  });
+  await act(async () => {
+    await button(tree, "Send").props.onPress();
+  });
+  assert.equal(input(tree, "Message").props.value, "");
+  assert.equal(tree.root.findByType("FlashList").props.data.length, 1);
+  assert.doesNotMatch(visibleText(tree), /Cannot reach the campus server/);
+  act(() => tree.unmount());
+});
+
+test("chat safely handles missing conversation and overlong messages", async () => {
+  const h = harness();
+  const { ChatScreen } = h.load("src/screens/ChatScreens.js");
+  let tree;
+  await act(async () => {
+    tree = renderer.create(React.createElement(ChatScreen, { route: {} }));
+  });
+  assert.match(visibleText(tree), /Go back to Messages/);
+  assert.equal(input(tree, "Message").props.editable, false);
+  act(() => tree.unmount());
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(ChatScreen, { route: { params: { id: "c1" } } }),
+    );
+  });
+  act(() => input(tree, "Message").props.onChangeText("a".repeat(5001)));
+  assert.match(visibleText(tree), /5000 characters/);
+  assert.equal(button(tree, "Send").props.disabled, true);
+  act(() => tree.unmount());
+});
+
+test("resource polling skips overlapping requests and a newer response wins over a stale one", async () => {
+  const h = harness();
+  const { useResource } = h.load("src/hooks/useResource.js");
+  const pending = [];
+  const fetcher = () =>
+    new Promise((resolve, reject) => pending.push({ resolve, reject }));
+  let current, tree;
+  function Probe() {
+    current = useResource(fetcher, [], 1000);
+    return null;
+  }
+  await act(async () => {
+    tree = renderer.create(React.createElement(Probe));
+  });
+  await act(async () => h.advanceTime(5000));
+  assert.equal(pending.length, 1);
+  let next;
+  act(() => {
+    next = current.reload();
+  });
+  assert.equal(pending.length, 2);
+  await act(async () => {
+    pending[1].resolve(["new"]);
+    await next;
+  });
+  await act(async () => pending[0].resolve(["old"]));
+  assert.equal(current.data[0], "new");
+  await act(async () => {
+    const refresh = current.reload();
+    pending[2].reject(new Error("Offline. Try again."));
+    await refresh;
+  });
+  assert.equal(current.data[0], "new");
+  assert.equal(current.error, "Offline. Try again.");
+  act(() => tree.unmount());
+});
+
+test("session storage failure remains recoverable without losing the active sign-in", async () => {
+  const h = harness();
+  const { AuthProvider, useAuth } = h.load("src/context/AuthContext.js");
+  let current, tree;
+  function Probe() {
+    current = useAuth();
+    return null;
+  }
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(AuthProvider, null, React.createElement(Probe)),
+    );
+  });
+  await act(async () =>
+    current.acceptSession({
+      token: "token",
+      user: { id: "me", status: "ACTIVE" },
+    }),
+  );
+  h.storage.removeItem = async () => {
+    throw new Error("disk failed");
+  };
+  await act(async () => {
+    await assert.rejects(
+      current.signOut(),
+      /could not clear your saved sign-in/,
+    );
+  });
+  assert.equal(current.user.id, "me");
+  await act(async () => current.useAnotherAccount());
+  assert.match(current.restoreError, /could not clear/);
+  h.storage.removeItem = async () => {};
+  await act(async () => current.useAnotherAccount());
+  assert.equal(current.user, null);
+  assert.equal(current.restoreError, "");
+  act(() => tree.unmount());
+});
+
+test("a failed report submission keeps the draft and locks duplicate publishing attempts", async () => {
+  const h = harness();
+  let release,
+    submissions = 0;
+  h.api.reportsApi.create = () => {
+    submissions++;
+    return new Promise((resolve, reject) => {
+      release = () =>
+        reject(new Error("Server unavailable. Please try again later."));
+    });
+  };
+  const Report = h.load("src/screens/ReportScreen.js").default;
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(Report, { navigation: h.navigation, route: {} }),
+    );
+  });
+  act(() => {
+    input(tree, "Description · Required").props.onChangeText(
+      "Black phone with a distinctive blue case",
+    );
+    button(tree, "Mobile Phone").props.onPress();
+  });
+  const submit = button(tree, "Publish found report").props.onPress;
+  await act(async () => {
+    const first = submit();
+    const second = submit();
+    assert.equal(submissions, 1);
+    release();
+    await Promise.all([first, second]);
+  });
+  assert.equal(
+    input(tree, "Description · Required").props.value,
+    "Black phone with a distinctive blue case",
+  );
+  assert.match(visibleText(tree), /Server unavailable/);
+  assert.equal(
+    h.calls.some(([kind]) => kind === "navigate"),
+    false,
+  );
+  act(() => tree.unmount());
+});
+
+test("a malformed report success keeps the draft and advises checking My items before retrying", async () => {
+  const h = harness();
+  h.api.reportsApi.create = async () => ({ data: { data: {} } });
+  const Report = h.load("src/screens/ReportScreen.js").default;
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(Report, { navigation: h.navigation, route: {} }),
+    );
+  });
+  act(() => {
+    input(tree, "Description · Required").props.onChangeText(
+      "Black phone with a blue case",
+    );
+    button(tree, "Mobile Phone").props.onPress();
+  });
+  await act(async () => {
+    await button(tree, "Publish found report").props.onPress();
+  });
+  assert.match(visibleText(tree), /Check My items before publishing again/);
+  assert.equal(
+    input(tree, "Description · Required").props.value,
+    "Black phone with a blue case",
+  );
+  act(() => tree.unmount());
+});
+
+test("sign-in storage failure keeps credentials and pending accounts cannot establish a session", async () => {
+  const h = harness();
+  h.auth.acceptSession = async () => {
+    throw new Error("We could not save your sign-in on this device.");
+  };
+  const { AuthScreen } = h.load("src/screens/AuthScreens.js");
+  let tree;
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(AuthScreen, {
+        navigation: h.navigation,
+        route: { name: "Login" },
+      }),
+    );
+  });
+  act(() => {
+    input(tree, "Student email").props.onChangeText(
+      "student@isbstudent.comsats.edu.pk",
+    );
+    input(tree, "Password").props.onChangeText("password123");
+  });
+  await act(async () => {
+    await button(tree, "Sign in").props.onPress();
+  });
+  assert.equal(input(tree, "Password").props.value, "password123");
+  assert.match(visibleText(tree), /could not save your sign-in/);
+  act(() => tree.unmount());
+  const { AuthProvider, useAuth } = h.load("src/context/AuthContext.js");
+  let current;
+  function Probe() {
+    current = useAuth();
+    return null;
+  }
+  await act(async () => {
+    tree = renderer.create(
+      React.createElement(AuthProvider, null, React.createElement(Probe)),
+    );
+  });
+  await act(async () =>
+    assert.rejects(
+      current.acceptSession({
+        token: "jwt",
+        user: { id: "me", status: "PENDING_VERIFICATION" },
+      }),
+      /verified account/,
+    ),
+  );
+  assert.equal(current.user, null);
   act(() => tree.unmount());
 });

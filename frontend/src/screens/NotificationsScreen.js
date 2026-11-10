@@ -12,6 +12,7 @@ import {
   s,
 } from "../components/ui";
 import { NotificationRow } from "../components/listRows";
+import { useSubmission } from "../hooks/useSubmission";
 
 const EMPTY_ITEMS = [];
 function Separator() {
@@ -20,7 +21,7 @@ function Separator() {
 
 export default function NotificationsScreen({ navigation }) {
   const [page, setPage] = useState(1);
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useSubmission();
   const [error, setError] = useState("");
   const resource = useResource(
     async () => (await notificationsApi.getAll({ page, limit: 20 })).data,
@@ -29,22 +30,21 @@ export default function NotificationsScreen({ navigation }) {
   );
   const read = useCallback(
     async (id, oppositeReportId) => {
-      setBusy(true);
       setError("");
-      try {
-        await notificationsApi.markRead(id);
-        resource.reload(true);
-        if (oppositeReportId)
-          navigation.navigate("Details", {
-            id: oppositeReportId,
-          });
-      } catch (err) {
-        setError(errorMessage(err));
-      } finally {
-        setBusy(false);
-      }
+      return run(async () => {
+        try {
+          await notificationsApi.markRead(id);
+          resource.reload(true);
+          if (oppositeReportId)
+            navigation.navigate("Details", {
+              id: oppositeReportId,
+            });
+        } catch (err) {
+          setError(errorMessage(err));
+        }
+      });
     },
-    [navigation, resource.reload],
+    [navigation, resource.reload, run],
   );
   const refresh = useCallback(() => resource.reload(), [resource.reload]);
   const renderNotification = useCallback(
@@ -63,16 +63,15 @@ export default function NotificationsScreen({ navigation }) {
     [busy, read],
   );
   async function readAll() {
-    setBusy(true);
     setError("");
-    try {
-      await notificationsApi.markAllRead();
-      await resource.reload(true);
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
+    return run(async () => {
+      try {
+        await notificationsApi.markAllRead();
+        await resource.reload(true);
+      } catch (err) {
+        setError(errorMessage(err));
+      }
+    });
   }
   return (
     <Screen scroll={false}>
@@ -87,9 +86,10 @@ export default function NotificationsScreen({ navigation }) {
               {resource.data?.unreadCount || 0} unread notifications
             </Text>
             <ErrorNotice
-              message={resource.error || error}
+              message={resource.error}
               onRetry={() => resource.reload()}
             />
+            <ErrorNotice message={error} />
             <Button
               title="Mark all as read"
               secondary

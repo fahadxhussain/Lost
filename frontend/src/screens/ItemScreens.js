@@ -2,7 +2,8 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Alert, Modal, Text, View } from "react-native";
 import { useResource } from "../hooks/useResource";
 import { useAuth } from "../context/AuthContext";
-import { chatApi, reportsApi, errorMessage } from "../services/api";
+import { chatApi, reportsApi, errorMessage, userError } from "../services/api";
+import { useSubmission } from "../hooks/useSubmission";
 import {
   Button,
   Chips,
@@ -137,42 +138,60 @@ export function MyItemsScreen({ navigation, route }) {
 }
 export function DetailsScreen({ navigation, route }) {
   const { user } = useAuth();
-  const resource = useResource(
-    async () => (await reportsApi.getById(route.params.id)).data.data,
-    [route.params.id],
-  );
-  const [busy, setBusy] = useState(false);
+  const id = route.params?.id;
+  const resource = useResource(async () => {
+    if (!id)
+      throw userError(
+        "This report could not be opened. Go back and choose it again from the feed or My items.",
+      );
+    const report = (await reportsApi.getById(id)).data.data;
+    if (!report?.id)
+      throw userError(
+        "This report could not be loaded. Go back and refresh the feed or My items.",
+      );
+    return report;
+  }, [id]);
+  const { busy, run } = useSubmission();
   const [error, setError] = useState("");
   const report = resource.data;
   const own = report && (report.userId || report.user?.id) === user.id;
   async function changeStatus(status) {
-    setBusy(true);
+    if (!own || !report || !["ACTIVE", "RESOLVED", "CLOSED"].includes(status))
+      return;
     setError("");
-    try {
-      await reportsApi.updateStatus(report.id, status);
-      await resource.reload();
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
+    return run(async () => {
+      try {
+        await reportsApi.updateStatus(report.id, status);
+        await resource.reload();
+      } catch (err) {
+        setError(errorMessage(err));
+      }
+    });
   }
   async function contact() {
-    setBusy(true);
+    const recipient = report?.user?.id || report?.userId;
+    if (!recipient || recipient === user.id)
+      return setError(
+        "This student's contact details are unavailable. Refresh the report and try again.",
+      );
     setError("");
-    try {
-      const response = await chatApi.createConversation({
-        otherUserId: report.user?.id || report.userId,
-      });
-      navigation.navigate("Chat", {
-        id: response.data.data.id,
-        name: report.user?.name || "Student",
-      });
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
+    return run(async () => {
+      try {
+        const response = await chatApi.createConversation({
+          otherUserId: recipient,
+        });
+        if (!response.data?.data?.id)
+          throw userError(
+            "We could not open the conversation. Check Messages before trying again.",
+          );
+        navigation.navigate("Chat", {
+          id: response.data.data.id,
+          name: report.user?.name || "Student",
+        });
+      } catch (err) {
+        setError(errorMessage(err));
+      }
+    });
   }
   return (
     <Screen>
@@ -271,15 +290,30 @@ export function DetailsScreen({ navigation, route }) {
 }
 export function MatchesScreen({ navigation, route }) {
   const { user } = useAuth();
+  const id = route.params?.id;
   const resource = useResource(
-    async () => (await reportsApi.getMatches(route.params.id)).data.data,
-    [route.params.id],
+    async () => {
+      if (!id)
+        throw userError(
+          "Open potential matches from one of your reports in My items.",
+        );
+      const matches = (await reportsApi.getMatches(id)).data.data;
+      if (
+        !Array.isArray(matches) ||
+        matches.some((match) => !match?.matchId || !match.candidateReport?.id)
+      )
+        throw userError(
+          "Potential matches could not be loaded. Please refresh and try again.",
+        );
+      return matches;
+    },
+    [id],
     15000,
   );
   const [selectedId, setSelectedId] = useState(null);
   const selected =
     resource.data?.find((match) => match.matchId === selectedId) || null;
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useSubmission();
   const [error, setError] = useState("");
   const openDetails = useCallback(
     (id) => navigation.navigate("Details", { id }),
@@ -304,23 +338,31 @@ export function MatchesScreen({ navigation, route }) {
     [openDetails, explain],
   );
   async function contact(match) {
-    setBusy(true);
+    const owner = match?.candidateReport?.owner;
+    if (!owner?.id || owner.id === user.id)
+      return setError(
+        "This student's contact details are unavailable. Close this view and refresh the matches.",
+      );
     setError("");
-    try {
-      const response = await chatApi.createConversation({
-        otherUserId: match.candidateReport.owner.id,
-        matchId: match.matchId,
-      });
-      setSelectedId(null);
-      navigation.navigate("Chat", {
-        id: response.data.data.id,
-        name: match.candidateReport.owner.name,
-      });
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
+    return run(async () => {
+      try {
+        const response = await chatApi.createConversation({
+          otherUserId: owner.id,
+          matchId: match.matchId,
+        });
+        if (!response.data?.data?.id)
+          throw userError(
+            "We could not open the conversation. Check Messages before trying again.",
+          );
+        setSelectedId(null);
+        navigation.navigate("Chat", {
+          id: response.data.data.id,
+          name: owner.name || "Student",
+        });
+      } catch (err) {
+        setError(errorMessage(err));
+      }
+    });
   }
   return (
     <Screen scroll={false}>
@@ -333,7 +375,7 @@ export function MatchesScreen({ navigation, route }) {
         onRefresh={refresh}
         ListHeaderComponent={
           <View style={{ gap: 16 }}>
-            {route.params.published && (
+            {route.params?.published && (
               <Text style={s.eyebrow}>REPORT PUBLISHED</Text>
             )}
             <Text style={s.heading}>
@@ -353,13 +395,15 @@ export function MatchesScreen({ navigation, route }) {
         ListEmptyComponent={
           <>
             {resource.loading && !resource.data && <Loading />}
-            {resource.data?.length === 0 && (
-              <Empty
-                title="No matches. Yet."
-                body="Matching runs in the background. New potential matches will appear here and in your notifications. Keep your report active while you’re looking."
-                icon="sparkles-outline"
-              />
-            )}
+            {!resource.loading &&
+              !resource.error &&
+              resource.data?.length === 0 && (
+                <Empty
+                  title="No matches. Yet."
+                  body="Matching runs in the background. New potential matches will appear here and in your notifications. Keep your report active while you’re looking."
+                  icon="sparkles-outline"
+                />
+              )}
           </>
         }
         ListFooterComponent={
@@ -369,7 +413,7 @@ export function MatchesScreen({ navigation, route }) {
               busy={resource.loading}
               onPress={refresh}
             />
-            {route.params.published && (
+            {route.params?.published && (
               <Button
                 title="Done · Go to feed"
                 secondary
@@ -395,7 +439,7 @@ export function MatchesScreen({ navigation, route }) {
                 {selected.aiReasoning || "No explanation provided."}
               </Text>
               <Notice title="Your report">
-                {route.params.report?.title || "Your item"}
+                {route.params?.report?.title || "Your item"}
               </Notice>
               <Notice title="Candidate report">
                 {selected.candidateReport.title}

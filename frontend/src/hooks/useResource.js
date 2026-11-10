@@ -7,8 +7,11 @@ export function useResource(fetcher, dependencies = [], pollMs = 0) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const generation = useRef(0);
+  const pending = useRef(false);
   const reload = useCallback(async (quiet = false) => {
+    if (quiet && pending.current) return;
     const request = ++generation.current;
+    pending.current = true;
     if (!quiet) setLoading(true);
     try {
       const result = await fetcher();
@@ -19,7 +22,10 @@ export function useResource(fetcher, dependencies = [], pollMs = 0) {
     } catch (err) {
       if (request === generation.current) setError(errorMessage(err));
     } finally {
-      if (request === generation.current) setLoading(false);
+      if (request === generation.current) {
+        pending.current = false;
+        setLoading(false);
+      }
     }
   }, dependencies);
   useFocusEffect(
@@ -29,6 +35,7 @@ export function useResource(fetcher, dependencies = [], pollMs = 0) {
       const timer = pollMs ? setInterval(() => reload(true), pollMs) : null;
       return () => {
         ++generation.current;
+        pending.current = false;
         if (timer) clearInterval(timer);
       };
     }, [reload, pollMs]),

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   StatusBar,
   Text,
@@ -10,11 +10,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, ErrorNotice, Field, Icon, Screen, s } from "../components/ui";
 import { COLORS as C } from "../constants/theme";
-import { authApi, errorMessage } from "../services/api";
+import { authApi, errorMessage, userError } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useSubmission } from "../hooks/useSubmission";
+import { authErrors, LIMITS, normalizeEmail } from "../utils/validation";
 
 export function WelcomeScreen({ navigation }) {
   const [email, setEmail] = useState("");
+  const { sessionNotice } = useAuth();
   return (
     <SafeAreaView style={styles.welcome}>
       <StatusBar barStyle="light-content" backgroundColor={C.primary} />
@@ -40,6 +43,11 @@ export function WelcomeScreen({ navigation }) {
           ))}
         </View>
         <View style={{ gap: 14 }}>
+          {sessionNotice && (
+            <Text accessibilityRole="alert" style={{ color: C.cardBg }}>
+              {sessionNotice}
+            </Text>
+          )}
           <View style={styles.emailRow}>
             <Icon name="mail-outline" color={C.border} />
             <TextInput
@@ -81,41 +89,62 @@ export function AuthScreen({ navigation, route }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState(route.params?.email || "");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [confirmation, setConfirmation] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const fields = useRef({});
+  const { busy, run } = useSubmission();
   const [error, setError] = useState("");
+  function change(field, setter) {
+    return (value) => {
+      setter(value);
+      setFieldErrors((old) => ({ ...old, [field]: undefined }));
+      setError("");
+    };
+  }
   async function submit() {
-    const normalized = email.trim().toLowerCase();
-    if (!/^[^\s@]+@isbstudent\.comsats\.edu\.pk$/.test(normalized))
-      return setError("Use your @isbstudent.comsats.edu.pk email.");
-    if (!password || (register && password.length < 8))
-      return setError(
-        "Enter a password" + (register ? " of at least 8 characters." : "."),
-      );
-    if (register && !name.trim()) return setError("Enter your name.");
-    setBusy(true);
-    setError("");
-    try {
-      const response = register
-        ? await authApi.register({
-            name: name.trim(),
-            email: normalized,
-            password,
-          })
-        : await authApi.login({ email: normalized, password });
-      setPassword("");
-      if (register)
-        navigation.navigate("VerifyOtp", {
-          userId: response.data.data.userId,
-          email: normalized,
-        });
-      else await acceptSession(response.data.data);
-    } catch (err) {
-      if (err.response?.data?.details?.needsVerification)
-        navigation.navigate("VerifyOtp", err.response.data.details);
-      else setError(errorMessage(err));
-    } finally {
-      setBusy(false);
+    const errors = authErrors(
+      { name, email, password, confirmation },
+      register,
+    );
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      setError("Please check the highlighted fields.");
+      fields.current[Object.keys(errors)[0]]?.focus();
+      return;
     }
+    const normalized = normalizeEmail(email);
+    setError("");
+    return run(async () => {
+      try {
+        const response = register
+          ? await authApi.register({
+              name: name.trim(),
+              email: normalized,
+              password,
+            })
+          : await authApi.login({ email: normalized, password });
+        if (register) {
+          if (!response.data?.data?.userId)
+            throw userError(
+              "We could not confirm registration. Try signing in with your student email before registering again.",
+            );
+          navigation.navigate("VerifyOtp", {
+            userId: response.data.data.userId,
+            email: normalized,
+          });
+        } else await acceptSession(response.data?.data);
+        setPassword("");
+        setConfirmation("");
+      } catch (err) {
+        if (err.response?.data?.details?.needsVerification)
+          navigation.navigate("VerifyOtp", {
+            ...err.response.data.details,
+            email: normalized,
+          });
+        else setError(errorMessage(err));
+      }
+    });
   }
   return (
     <Screen>
@@ -124,20 +153,38 @@ export function AuthScreen({ navigation, route }) {
         {register ? "Join your campus." : "Welcome back."}
       </Text>
       <Text style={s.body}>Lost things are better found together.</Text>
+      {route.params?.verified && (
+        <Text accessibilityLiveRegion="polite" style={s.body}>
+          Your email is verified. Sign in to get started.
+        </Text>
+      )}
       <View>
         {register && (
           <Field
             label="Your name"
+            ref={(node) => {
+              fields.current.name = node;
+            }}
+            error={fieldErrors.name}
+            maxLength={LIMITS.name}
+            editable={!busy}
             placeholder="e.g. Alex Khan"
             value={name}
-            onChangeText={setName}
+            onChangeText={change("name", setName)}
             autoComplete="name"
           />
         )}
         <Field
           label="Student email"
+          ref={(node) => {
+            fields.current.email = node;
+          }}
+          error={fieldErrors.email}
+          hint="Use your @isbstudent.comsats.edu.pk student email."
+          maxLength={LIMITS.email}
+          editable={!busy}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={change("email", setEmail)}
           placeholder="e.g. fa25-bcs-000@isbstudent.comsats.edu.pk"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -146,16 +193,54 @@ export function AuthScreen({ navigation, route }) {
         />
         <Field
           label="Password"
+          ref={(node) => {
+            fields.current.password = node;
+          }}
+          error={fieldErrors.password}
+          hint={
+            register
+              ? "Use at least 8 characters. Your password is case-sensitive."
+              : "Your password is case-sensitive."
+          }
+          editable={!busy}
           placeholder={
             register
               ? "Choose a password (8+ characters)"
               : "Enter your password"
           }
           value={password}
-          onChangeText={setPassword}
-          secureTextEntry
+          onChangeText={change("password", setPassword)}
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
           autoComplete={register ? "new-password" : "current-password"}
-          onSubmitEditing={submit}
+          onSubmitEditing={
+            register ? () => fields.current.confirmation?.focus() : submit
+          }
+        />
+        {register && (
+          <Field
+            label="Confirm password"
+            ref={(node) => {
+              fields.current.confirmation = node;
+            }}
+            value={confirmation}
+            onChangeText={change("confirmation", setConfirmation)}
+            placeholder="Enter your password again"
+            error={fieldErrors.confirmation}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!busy}
+            autoComplete="new-password"
+            onSubmitEditing={submit}
+          />
+        )}
+        <Button
+          title={showPassword ? "Hide password" : "Show password"}
+          secondary
+          disabled={busy}
+          onPress={() => setShowPassword((value) => !value)}
         />
         <ErrorNotice message={error} />
         <Button
@@ -170,6 +255,7 @@ export function AuthScreen({ navigation, route }) {
               : "New here? Create an account"
           }
           secondary
+          disabled={busy}
           onPress={() => navigation.replace(register ? "Login" : "Register")}
         />
       </View>
@@ -177,58 +263,83 @@ export function AuthScreen({ navigation, route }) {
   );
 }
 export function OtpScreen({ navigation, route }) {
-  const { userId, email } = route.params;
+  const { userId, email } = route.params || {};
+  const hasAccount = !!(userId || email);
   const { acceptSession } = useAuth();
   const [otp, setOtp] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useSubmission();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [resendAt, setResendAt] = useState(() => Date.now() + 30000);
   const [cooldown, setCooldown] = useState(30);
   useEffect(() => {
     const timer = setInterval(
-      () => setCooldown((v) => Math.max(0, v - 1)),
+      () => setCooldown(Math.max(0, Math.ceil((resendAt - Date.now()) / 1000))),
       1000,
     );
     return () => clearInterval(timer);
-  }, []);
+  }, [resendAt]);
   async function verify() {
+    if (!hasAccount)
+      return setError(
+        "Start with sign in or registration so we know which email to verify.",
+      );
     if (!/^\d{6}$/.test(otp))
       return setError("Enter the six-digit code from your email.");
-    setBusy(true);
     setError("");
-    try {
-      const response = await authApi.verifyOtp({ userId, email, otp });
-      if (response.data.data.token) await acceptSession(response.data.data);
-      else navigation.replace("Login");
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
+    setNotice("");
+    return run(async () => {
+      try {
+        const response = await authApi.verifyOtp({ userId, email, otp });
+        if (response.data.data.token) await acceptSession(response.data.data);
+        else navigation.replace("Login", { email, verified: true });
+      } catch (err) {
+        setError(errorMessage(err));
+      }
+    });
   }
   async function resend() {
-    setBusy(true);
+    if (!hasAccount || Date.now() < resendAt) return;
     setError("");
-    try {
-      await authApi.resendOtp({ userId, email });
-      setCooldown(30);
-      setNotice("A new code is on its way.");
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
+    setNotice("");
+    return run(async () => {
+      try {
+        await authApi.resendOtp({ userId, email });
+        setResendAt(Date.now() + 30000);
+        setCooldown(30);
+        setOtp("");
+        setNotice(
+          "A new code is on its way. Use the latest email; older codes no longer work.",
+        );
+      } catch (err) {
+        setError(errorMessage(err));
+      }
+    });
   }
   return (
     <Screen>
       <Icon name="mail-outline" size={42} />
       <Text style={s.heading}>Check your campus email.</Text>
-      <Text style={s.body}>Enter the verification code sent to {email}.</Text>
+      <Text style={s.body}>
+        {email
+          ? `Enter the verification code sent to ${email}.`
+          : hasAccount
+            ? "Enter the code sent to your student email."
+            : "Please sign in or register before verifying your email."}
+      </Text>
+      <Text style={s.body}>
+        Check your spam or junk folder too. If the code expires, request a new
+        one below.
+      </Text>
       <Field
         label="Verification code"
         placeholder="Enter 6-digit code"
         value={otp}
-        onChangeText={(v) => setOtp(v.replace(/\D/g, ""))}
+        onChangeText={(v) => {
+          setOtp(v.replace(/\D/g, "").slice(0, 6));
+          setError("");
+        }}
+        editable={!busy && hasAccount}
         maxLength={6}
         keyboardType="number-pad"
         autoComplete="one-time-code"
@@ -236,12 +347,23 @@ export function OtpScreen({ navigation, route }) {
       />
       <ErrorNotice message={error} />
       {notice ? <Text style={s.body}>{notice}</Text> : null}
-      <Button title="Verify email" onPress={verify} busy={busy} />
+      <Button
+        title="Verify email"
+        onPress={verify}
+        busy={busy}
+        disabled={!hasAccount}
+      />
       <Button
         title={cooldown ? `Resend code in ${cooldown}s` : "Resend code"}
         onPress={resend}
-        disabled={cooldown > 0 || busy}
+        disabled={cooldown > 0 || busy || !hasAccount}
         secondary
+      />
+      <Button
+        title="Use another email"
+        secondary
+        disabled={busy}
+        onPress={() => navigation.replace("Register")}
       />
     </Screen>
   );
