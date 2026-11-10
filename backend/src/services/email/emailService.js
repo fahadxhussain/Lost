@@ -7,16 +7,26 @@ class EmailService {
     this.provider = config.email.provider;
     this.transporter = null;
 
-    if (this.provider === 'smtp' && config.email.smtp.host) {
-      this.transporter = nodemailer.createTransport({
-        host: config.email.smtp.host,
-        port: config.email.smtp.port,
-        secure: config.email.smtp.port === 465,
-        auth: {
-          user: config.email.smtp.user,
-          pass: config.email.smtp.pass,
-        },
-      });
+    if (this.provider === 'smtp') {
+      const transportOptions = config.email.smtp.service === 'gmail'
+        ? {
+            service: 'gmail',
+            auth: {
+              user: config.email.smtp.user,
+              pass: config.email.smtp.pass,
+            },
+          }
+        : {
+            host: config.email.smtp.host,
+            port: config.email.smtp.port,
+            secure: config.email.smtp.port === 465,
+            auth: {
+              user: config.email.smtp.user,
+              pass: config.email.smtp.pass,
+            },
+          };
+
+      this.transporter = nodemailer.createTransport(transportOptions);
     }
   }
 

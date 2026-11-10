@@ -27,6 +27,7 @@ module.exports = {
     provider: process.env.EMAIL_PROVIDER || 'console',
     from: process.env.EMAIL_FROM || 'COMSATS Lost & Found <no-reply@comsats.edu.pk>',
     smtp: {
+      service: process.env.SMTP_SERVICE || '',
       host: process.env.SMTP_HOST || '',
       port: parseInt(process.env.SMTP_PORT || '587', 10),
       user: process.env.SMTP_USER || '',
