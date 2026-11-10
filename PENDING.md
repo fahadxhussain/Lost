@@ -28,16 +28,16 @@ This document tracks items that require confirmation, unresolved architecture po
   - [x] Baseline git repository initialized
   - [x] Architectural definitions established in `ARCHITECTURE.md`
   - [x] Decisions and unknowns documented in `PENDING.md`
-- [ ] **Phase 1: Database Foundation & Categories**
-  - [ ] Initialize `backend/` Node.js modular architecture
-  - [ ] Configure Prisma schema with models, constraints, and indexes
-  - [ ] Seed script with approved categories (distinct "Mobile Phone" and "Laptop Charger")
-  - [ ] Verification tests for schema and seed idempotency
-- [ ] **Phase 2: Authentication & University Email OTP**
-  - [ ] Domain validation (`@*.comsats.edu.pk` and `@isbstudent.comsats.edu.pk`)
-  - [ ] Argon2/Bcrypt password hashing & OTP generation
-  - [ ] Gating unverified accounts from protected endpoints
-  - [ ] JWT authentication and session handling
+- [x] **Phase 1: Database Foundation & Categories**
+  - [x] Initialize `backend/` Node.js modular architecture
+  - [x] Configure Prisma schema with models, constraints, and indexes
+  - [x] Seed script with approved categories (distinct "Mobile Phone" and "Laptop Charger")
+  - [x] Verification tests for schema and seed idempotency
+- [x] **Phase 2: Authentication & University Email OTP**
+  - [x] Domain validation (`@*.comsats.edu.pk` and `@isbstudent.comsats.edu.pk`)
+  - [x] Argon2/Bcrypt password hashing & OTP generation
+  - [x] Gating unverified accounts from protected endpoints
+  - [x] JWT authentication and session handling
 - [ ] **Phase 3: Report Management & Image Handling**
   - [ ] Create, update, view, and close LOST and FOUND reports
   - [ ] Mandatory category and description validation
