@@ -23,12 +23,13 @@ import { useAuth } from "../context/AuthContext";
 import { useResource } from "../hooks/useResource";
 import {
   Button,
+  ChatSkeleton,
   CompactSeparator,
   DataList,
   Empty,
   ErrorNotice,
-  Loading,
   Icon,
+  RowSkeleton,
   Screen,
   s,
 } from "../components/ui";
@@ -87,7 +88,13 @@ export function ConversationsScreen({ navigation }) {
         }
         ListEmptyComponent={
           <>
-            {resource.loading && !resource.data && <Loading />}
+            {resource.loading && !resource.data ? (
+              <View style={{ gap: 16, paddingTop: 8 }}>
+                {[0, 1, 2, 3].map((i) => (
+                  <RowSkeleton key={i} />
+                ))}
+              </View>
+            ) : null}
             {!resource.loading &&
               !resource.error &&
               resource.data?.length === 0 && (
@@ -303,7 +310,7 @@ export function ChatScreen({ route }) {
           : "Reconnecting · Checking for new messages"}
       </Text>
       <ErrorNotice message={error} onRetry={id ? refresh : undefined} />
-      {loading && <Loading />}
+      {loading && <ChatSkeleton />}
       <DataList
         ref={list}
         data={messages}

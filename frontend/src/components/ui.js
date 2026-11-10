@@ -531,7 +531,37 @@ export function DetailsSkeleton() {
     </View>
   );
 }
+export function ChatSkeleton({ count = 4 }) {
+  const items = [
+    { self: false, width: 180, height: 44 },
+    { self: true, width: 220, height: 56 },
+    { self: false, width: 140, height: 40 },
+    { self: true, width: 190, height: 48 },
+  ];
+  return (
+    <View style={{ gap: 14, paddingHorizontal: 20, paddingTop: 16 }}>
+      {items.slice(0, count).map((item, i) => (
+        <View
+          key={i}
+          style={{
+            alignSelf: item.self ? "flex-end" : "flex-start",
+            maxWidth: "75%",
+          }}
+        >
+          <SkeletonBox
+            width={item.width}
+            height={item.height}
+            borderRadius={18}
+          />
+        </View>
+      ))}
+    </View>
+  );
+}
 export function SkeletonList({ count = 5, variant = 'report' }) {
+  if (variant === 'chat') {
+    return <ChatSkeleton count={count} />;
+  }
   const items = Array.from({ length: count }, (_, i) => i);
   const Skeleton = variant === 'report' ? ReportCardSkeleton : RowSkeleton;
   return (
@@ -540,10 +570,8 @@ export function SkeletonList({ count = 5, variant = 'report' }) {
     </View>
   );
 }
-export function Loading() {
-  return (
-    <ActivityIndicator style={{ margin: 32 }} size="large" color={C.primary} />
-  );
+export function Loading({ count = 4, variant = 'report' }) {
+  return <SkeletonList count={count} variant={variant} />;
 }
 export const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: C.background },
