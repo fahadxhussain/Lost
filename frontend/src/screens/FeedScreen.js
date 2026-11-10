@@ -17,9 +17,9 @@ import {
   Empty,
   ErrorNotice,
   Field,
-  Loading,
   Notice,
   ReportCard,
+  ReportCardSkeleton,
   reportCardProps,
   Screen,
   Segments,
@@ -192,7 +192,9 @@ export default function FeedScreen({ navigation }) {
         renderItem={renderReport}
         ListEmptyComponent={
           loading ? (
-            <Loading />
+            <View style={{ gap: 16, paddingTop: 8 }}>
+              {[0,1,2,3,4].map(i => <ReportCardSkeleton key={i} />)}
+            </View>
           ) : !error ? (
             <Empty
               title={

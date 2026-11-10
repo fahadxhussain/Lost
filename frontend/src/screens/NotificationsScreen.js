@@ -7,7 +7,7 @@ import {
   DataList,
   Empty,
   ErrorNotice,
-  Loading,
+  RowSkeleton,
   Screen,
   s,
 } from "../components/ui";
@@ -102,7 +102,9 @@ export default function NotificationsScreen({ navigation }) {
         renderItem={renderNotification}
         ListEmptyComponent={
           resource.loading ? (
-            <Loading />
+            <View style={{ gap: 16, paddingTop: 8 }}>
+              {[0,1,2,3,4].map(i => <RowSkeleton key={i} />)}
+            </View>
           ) : !resource.error ? (
             <Empty
               title="A quiet inbox."

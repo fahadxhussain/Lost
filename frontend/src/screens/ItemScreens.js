@@ -8,12 +8,15 @@ import {
   Button,
   Chips,
   DataList,
+  DetailsSkeleton,
   Empty,
   ErrorNotice,
-  Loading,
+  FadeInView,
   Notice,
   ModalScreen,
   Photo,
+  ReportCardSkeleton,
+  RowSkeleton,
   reportCardProps,
   matchKey,
   Screen,
@@ -106,7 +109,11 @@ export function MyItemsScreen({ navigation, route }) {
         }
         ListEmptyComponent={
           <>
-            {resource.loading && !resource.data ? <Loading /> : null}
+            {resource.loading && !resource.data ? (
+              <View style={{ gap: 16, paddingTop: 8 }}>
+                {[0,1,2,3].map(i => <ReportCardSkeleton key={i} />)}
+              </View>
+            ) : null}
             {!resource.loading && !resource.error && !reports.length && (
               <Empty
                 title={
@@ -196,94 +203,96 @@ export function DetailsScreen({ navigation, route }) {
   return (
     <Screen>
       <ErrorNotice message={resource.error} onRetry={() => resource.reload()} />
-      {resource.loading && !report && <Loading />}
+      {resource.loading && !report && <DetailsSkeleton />}
       {report && (
-        <>
-          <Photo uri={report.imageUrl} style={{ height: 240 }} />
-          <Text style={s.eyebrow}>
-            {report.type} · {report.status}
-          </Text>
-          <Text style={s.heading}>{report.title}</Text>
-          <Text style={s.cardTitle}>
-            {report.incidentLocation || "Location not specified"}
-          </Text>
-          <Text style={s.body}>
-            {report.type === "LOST" ? "Lost" : "Found"}:{" "}
-            {formatDate(report.incidentDate)}
-            {report.user?.name ? ` · Posted by ${report.user.name}` : ""}
-          </Text>
-          <Text style={s.body}>{report.description}</Text>
-          <Chips
-            options={[
-              { value: "category", label: report.category?.name || "Item" },
-            ]}
-            value="category"
-            onChange={() => {}}
-          />
-          <Notice title="A safer way to get it back">
-            A potential match is a clue, not proof of ownership. Compare
-            identifying details with the other student before arranging a
-            return.
-          </Notice>
-          <ErrorNotice message={error} />
-          {own ? (
-            <>
-              <Button
-                title="View potential matches"
-                secondary
-                onPress={() =>
-                  navigation.navigate("Matches", { id: report.id, report })
-                }
-              />
-              {report.status === "ACTIVE" && (
-                <Button
-                  title="Edit report"
-                  disabled={busy}
-                  onPress={() => navigation.navigate("EditReport", { report })}
-                />
-              )}
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                {["ACTIVE", "RESOLVED", "CLOSED"]
-                  .filter((v) => v !== report.status)
-                  .map((v) => (
-                    <Button
-                      key={v}
-                      style={{ flex: 1 }}
-                      title={
-                        v === "ACTIVE"
-                          ? "Reopen report"
-                          : v === "RESOLVED"
-                            ? "Mark resolved"
-                            : "Close report"
-                      }
-                      disabled={busy}
-                      onPress={() =>
-                        Alert.alert(
-                          "Update report?",
-                          v === "ACTIVE"
-                            ? "Make this report active again?"
-                            : `Mark this report as ${v.toLowerCase()}?`,
-                          [
-                            { text: "Cancel", style: "cancel" },
-                            { text: "Confirm", onPress: () => changeStatus(v) },
-                          ],
-                        )
-                      }
-                    />
-                  ))}
-              </View>
-            </>
-          ) : (
-            <Button
-              title={
-                report.type === "FOUND" ? "Contact finder" : "Contact owner"
-              }
-              onPress={contact}
-              busy={busy}
+        <FadeInView>
+          <>
+            <Photo uri={report.imageUrl} style={{ height: 240 }} />
+            <Text style={s.eyebrow}>
+              {report.type} · {report.status}
+            </Text>
+            <Text style={s.heading}>{report.title}</Text>
+            <Text style={s.cardTitle}>
+              {report.incidentLocation || "Location not specified"}
+            </Text>
+            <Text style={s.body}>
+              {report.type === "LOST" ? "Lost" : "Found"}:{" "}
+              {formatDate(report.incidentDate)}
+              {report.user?.name ? ` · Posted by ${report.user.name}` : ""}
+            </Text>
+            <Text style={s.body}>{report.description}</Text>
+            <Chips
+              options={[
+                { value: "category", label: report.category?.name || "Item" },
+              ]}
+              value="category"
+              onChange={() => {}}
             />
-          )}
-          <Text style={s.label}>Submitted {formatDate(report.createdAt)}</Text>
-        </>
+            <Notice title="A safer way to get it back">
+              A potential match is a clue, not proof of ownership. Compare
+              identifying details with the other student before arranging a
+              return.
+            </Notice>
+            <ErrorNotice message={error} />
+            {own ? (
+              <>
+                <Button
+                  title="View potential matches"
+                  secondary
+                  onPress={() =>
+                    navigation.navigate("Matches", { id: report.id, report })
+                  }
+                />
+                {report.status === "ACTIVE" && (
+                  <Button
+                    title="Edit report"
+                    disabled={busy}
+                    onPress={() => navigation.navigate("EditReport", { report })}
+                  />
+                )}
+                <View style={{ flexDirection: "row", gap: 12 }}>
+                  {["ACTIVE", "RESOLVED", "CLOSED"]
+                    .filter((v) => v !== report.status)
+                    .map((v) => (
+                      <Button
+                        key={v}
+                        style={{ flex: 1 }}
+                        title={
+                          v === "ACTIVE"
+                            ? "Reopen report"
+                            : v === "RESOLVED"
+                              ? "Mark resolved"
+                              : "Close report"
+                        }
+                        disabled={busy}
+                        onPress={() =>
+                          Alert.alert(
+                            "Update report?",
+                            v === "ACTIVE"
+                              ? "Make this report active again?"
+                              : `Mark this report as ${v.toLowerCase()}?`,
+                            [
+                              { text: "Cancel", style: "cancel" },
+                              { text: "Confirm", onPress: () => changeStatus(v) },
+                            ],
+                          )
+                        }
+                      />
+                    ))}
+                </View>
+              </>
+            ) : (
+              <Button
+                title={
+                  report.type === "FOUND" ? "Contact finder" : "Contact owner"
+                }
+                onPress={contact}
+                busy={busy}
+              />
+            )}
+            <Text style={s.label}>Submitted {formatDate(report.createdAt)}</Text>
+          </>
+        </FadeInView>
       )}
     </Screen>
   );
@@ -394,7 +403,11 @@ export function MatchesScreen({ navigation, route }) {
         }
         ListEmptyComponent={
           <>
-            {resource.loading && !resource.data && <Loading />}
+            {resource.loading && !resource.data && (
+              <View style={{ gap: 16, paddingTop: 8 }}>
+                {[0,1,2].map(i => <RowSkeleton key={i} />)}
+              </View>
+            )}
             {!resource.loading &&
               !resource.error &&
               resource.data?.length === 0 && (

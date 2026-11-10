@@ -14,6 +14,7 @@ import {
   Icon,
   Loading,
   Screen,
+  SkeletonList,
   s,
 } from "../components/ui";
 import { COLORS as C } from "../constants/theme";
@@ -318,7 +319,7 @@ export default function AppNavigator() {
   if (loading)
     return (
       <Screen>
-        <Loading />
+        <SkeletonList count={6} variant="report" />
       </Screen>
     );
   if (restoreError)
@@ -346,6 +347,8 @@ export default function AppNavigator() {
         screenOptions={{
           header: (props) => <Header {...props} />,
           contentStyle: { backgroundColor: C.background },
+          animation: 'slide_from_right',
+          animationDuration: 280,
         }}
       >
         {user ? (

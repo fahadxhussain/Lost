@@ -1,6 +1,8 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useRef, useEffect } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -433,6 +435,104 @@ export const ReportCard = memo(function ReportCard({
     </View>
   );
 });
+export function SkeletonBox({ width, height, style, borderRadius = 10 }) {
+  const opacity = useRef(new Animated.Value(0.4)).current;
+  const [reduceMotion, setReduceMotion] = React.useState(false);
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(setReduceMotion)
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (reduceMotion) { opacity.setValue(0.4); return; }
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [reduceMotion, opacity]);
+  return (
+    <Animated.View
+      style={[
+        { backgroundColor: C.soft, borderRadius, opacity },
+        width != null && { width },
+        height != null && { height },
+        style,
+      ]}
+    />
+  );
+}
+export function FadeInView({ children, style, duration = 280 }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const [reduceMotion, setReduceMotion] = React.useState(false);
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(setReduceMotion)
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (reduceMotion) { opacity.setValue(1); return; }
+    const anim = Animated.timing(opacity, {
+      toValue: 1,
+      duration,
+      useNativeDriver: true,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [reduceMotion, duration, opacity]);
+  return (
+    <Animated.View style={[{ opacity }, style]}>
+      {children}
+    </Animated.View>
+  );
+}
+export function ReportCardSkeleton() {
+  return (
+    <View style={[s.card, { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 }]}>
+      <SkeletonBox width={96} height={96} borderRadius={12} />
+      <View style={{ flex: 1, gap: 10 }}>
+        <SkeletonBox width={60} height={10} borderRadius={5} />
+        <SkeletonBox width={'85%'} height={16} borderRadius={6} />
+        <SkeletonBox width={'60%'} height={12} borderRadius={5} />
+      </View>
+    </View>
+  );
+}
+export function RowSkeleton() {
+  return (
+    <View style={[s.card, { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }]}>
+      <SkeletonBox width={40} height={40} borderRadius={20} />
+      <View style={{ flex: 1, gap: 10 }}>
+        <SkeletonBox width={'70%'} height={15} borderRadius={6} />
+        <SkeletonBox width={'90%'} height={12} borderRadius={5} />
+        <SkeletonBox width={80} height={10} borderRadius={5} />
+      </View>
+    </View>
+  );
+}
+export function DetailsSkeleton() {
+  return (
+    <View style={{ gap: 14 }}>
+      <SkeletonBox height={240} borderRadius={16} />
+      <SkeletonBox width={80} height={11} borderRadius={5} />
+      <SkeletonBox width={'75%'} height={28} borderRadius={8} />
+      <SkeletonBox width={'50%'} height={18} borderRadius={6} />
+      <SkeletonBox height={60} borderRadius={10} />
+    </View>
+  );
+}
+export function SkeletonList({ count = 5, variant = 'report' }) {
+  const items = Array.from({ length: count }, (_, i) => i);
+  const Skeleton = variant === 'report' ? ReportCardSkeleton : RowSkeleton;
+  return (
+    <View style={{ gap: 16, paddingHorizontal: 24, paddingTop: 24 }}>
+      {items.map(i => <Skeleton key={i} />)}
+    </View>
+  );
+}
 export function Loading() {
   return (
     <ActivityIndicator style={{ margin: 32 }} size="large" color={C.primary} />
