@@ -86,6 +86,7 @@ async function main() {
       description: 'Lost my Phantom Black Samsung Galaxy S23 Ultra. It has a cracked transparent case and a small scratch on the top corner.',
       incidentLocation: 'Student Cafeteria Ground Floor',
       incidentDate: new Date('2026-11-10T11:00:00Z'),
+      imageUrl: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=1000&q=80',
     },
     {
       userId: students['FA23-BAI-015'].id,
@@ -95,6 +96,7 @@ async function main() {
       description: 'Found a black Samsung smartphone with transparent silicon cover on table 8 in the central cafeteria after lunch.',
       incidentLocation: 'Student Cafeteria',
       incidentDate: new Date('2026-11-10T11:30:00Z'),
+      imageUrl: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=1000&q=80',
     },
 
     // Pair 2: Charger
@@ -106,6 +108,7 @@ async function main() {
       description: 'Forgot my black Dell 65W laptop charger plugged into the extension board in CS Block Lab 2 yesterday.',
       incidentLocation: 'CS Department Lab 2',
       incidentDate: new Date('2026-11-09T16:00:00Z'),
+      imageUrl: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=1000&q=80',
     },
     {
       userId: students['SP23-BEE-023'].id,
@@ -115,6 +118,7 @@ async function main() {
       description: 'Found a genuine Dell 65W black USB-C laptop charger in CS Block Lab 2 on desk 6 near the window.',
       incidentLocation: 'CS Block Lab 2',
       incidentDate: new Date('2026-11-09T17:15:00Z'),
+      imageUrl: 'https://images.unsplash.com/photo-1622445262464-84b14e572202?auto=format&fit=crop&w=1000&q=80',
     },
 
     // Pair 3: Student Card
@@ -126,6 +130,7 @@ async function main() {
       description: 'Misplaced my official COMSATS University student smart card. Roll number SP22-BBA-088 with blue lanyard.',
       incidentLocation: 'Central Library Steps',
       incidentDate: new Date('2026-11-10T09:00:00Z'),
+      imageUrl: 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=1000&q=80',
     },
     {
       userId: students['FA23-BAI-015'].id,
@@ -135,6 +140,7 @@ async function main() {
       description: 'Found a university student card with blue strap on the stairs outside the central library entrance.',
       incidentLocation: 'Central Library Entrance',
       incidentDate: new Date('2026-11-10T09:45:00Z'),
+      imageUrl: 'https://images.unsplash.com/photo-1589363460779-cd717d7e8fa5?auto=format&fit=crop&w=1000&q=80',
     },
 
     // Unmatched Items
@@ -146,6 +152,7 @@ async function main() {
       description: 'Lost my Honda 125 bike key attached to a red COMSATS University lanyard near Gate 1 parking area.',
       incidentLocation: 'Gate 1 Student Bike Parking',
       incidentDate: new Date('2026-11-10T08:15:00Z'),
+      imageUrl: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=1000&q=80',
     },
     {
       userId: students['SP23-BEE-023'].id,
@@ -155,6 +162,7 @@ async function main() {
       description: 'Found a black spiral notebook containing handwritten Operating Systems and Computer Networks lecture notes.',
       incidentLocation: 'Academic Block 1 Room 102',
       incidentDate: new Date('2026-11-10T10:10:00Z'),
+      imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1000&q=80',
     },
   ];
 
