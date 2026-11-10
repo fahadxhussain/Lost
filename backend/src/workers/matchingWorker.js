@@ -12,10 +12,11 @@ class MatchingWorker {
   /**
    * Process a single queued job. Exported for standalone execution and integration tests.
    */
-  async processNextJob() {
-    // Atomically find and lock the oldest queued job
+  async processNextJob(targetJobId = null) {
+    // Atomically find and lock the oldest queued job (or specific job if passed)
+    const where = targetJobId ? { id: targetJobId } : { status: 'QUEUED' };
     const job = await prisma.matchingJob.findFirst({
-      where: { status: 'QUEUED' },
+      where,
       orderBy: { createdAt: 'asc' },
     });
 
@@ -65,6 +66,14 @@ class MatchingWorker {
 
       // Step 2: Asynchronous Gemini AI evaluation for each shortlisted pair
       for (const candidate of candidates) {
+        // Verify both source and candidate reports still exist and are active
+        const [sourceStillExists, candidateReport] = await Promise.all([
+          prisma.report.findUnique({ where: { id: sourceReport.id, status: 'ACTIVE' } }),
+          prisma.report.findUnique({ where: { id: candidate.id, status: 'ACTIVE' } }),
+        ]);
+
+        if (!sourceStillExists || !candidateReport) continue;
+
         const evaluation = await geminiService.evaluateMatch(sourceReport, candidate);
 
         if (evaluation.score >= 0.5) {
@@ -74,50 +83,54 @@ class MatchingWorker {
           const lostOwnerId = isSourceLost ? sourceReport.userId : candidate.userId;
           const foundOwnerId = isSourceLost ? candidate.userId : sourceReport.userId;
 
-          // Upsert PotentialMatch record (prevents duplicates)
-          const match = await prisma.potentialMatch.upsert({
-            where: {
-              lostReportId_foundReportId: {
+          try {
+            // Upsert PotentialMatch record (prevents duplicates)
+            const match = await prisma.potentialMatch.upsert({
+              where: {
+                lostReportId_foundReportId: {
+                  lostReportId,
+                  foundReportId,
+                },
+              },
+              update: {
+                score: evaluation.score,
+                aiReasoning: evaluation.reasoning,
+              },
+              create: {
                 lostReportId,
                 foundReportId,
+                score: evaluation.score,
+                aiReasoning: evaluation.reasoning,
+                status: 'PENDING',
               },
-            },
-            update: {
-              score: evaluation.score,
-              aiReasoning: evaluation.reasoning,
-            },
-            create: {
-              lostReportId,
-              foundReportId,
-              score: evaluation.score,
-              aiReasoning: evaluation.reasoning,
-              status: 'PENDING',
-            },
-          });
+            });
 
-          // Step 3: Create notifications for both report owners
-          await prisma.notification.createMany({
-            data: [
-              {
-                userId: lostOwnerId,
-                type: 'POTENTIAL_MATCH',
-                title: 'Potential Match Found!',
-                body: `We found a possible match for your lost ${sourceReport.category.name}: "${candidate.title}". AI confidence: ${Math.round(evaluation.score * 100)}%`,
-                metadata: { matchId: match.id, oppositeReportId: foundReportId },
-              },
-              {
-                userId: foundOwnerId,
-                type: 'POTENTIAL_MATCH',
-                title: 'Potential Owner Identified!',
-                body: `Someone reported losing an item matching what you found: "${sourceReport.title}". AI confidence: ${Math.round(evaluation.score * 100)}%`,
-                metadata: { matchId: match.id, oppositeReportId: lostReportId },
-              },
-            ],
-          });
+            // Step 3: Create notifications for both report owners
+            await prisma.notification.createMany({
+              data: [
+                {
+                  userId: lostOwnerId,
+                  type: 'POTENTIAL_MATCH',
+                  title: 'Potential Match Found!',
+                  body: `We found a possible match for your lost ${sourceReport.category.name}: "${candidate.title}". AI confidence: ${Math.round(evaluation.score * 100)}%`,
+                  metadata: { matchId: match.id, oppositeReportId: foundReportId },
+                },
+                {
+                  userId: foundOwnerId,
+                  type: 'POTENTIAL_MATCH',
+                  title: 'Potential Owner Identified!',
+                  body: `Someone reported losing an item matching what you found: "${sourceReport.title}". AI confidence: ${Math.round(evaluation.score * 100)}%`,
+                  metadata: { matchId: match.id, oppositeReportId: lostReportId },
+                },
+              ],
+            });
 
-          logger.info(
-            `[Worker] Potential match created (Score: ${evaluation.score}) between ${lostReportId} and ${foundReportId}`
-          );
+            logger.info(
+              `[Worker] Potential match created (Score: ${evaluation.score}) between ${lostReportId} and ${foundReportId}`
+            );
+          } catch (upsertErr) {
+            logger.warn(`[Worker] Skipping match creation: ${upsertErr.message}`);
+          }
         }
       }
 

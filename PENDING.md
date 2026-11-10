@@ -50,9 +50,13 @@ This document tracks items that require confirmation, unresolved architecture po
   - [x] Lexical token-overlap and trigram ranking
 - [x] **Phase 6: Async Queue & Gemini Evaluation**
   - [x] Background matching worker process
-  - [x] Gemini API client with structured schema responses
+  - [x] Gemini API client with structured schema responses & Multimodal Image inspection
+  - [x] Live Google Gemini 3.5 Flash Lite integrated with fallback
   - [x] Notification generation for both report owners
 - [x] **Phase 7: In-App Messaging & Notifications**
   - [x] Conversation threads and message persistence
   - [x] Unread notification counts and delivery
   - [x] Real-time Socket.IO events and room joins
+- [x] **Phase 8: Campus Demo Dataset & Multimodal Verification**
+  - [x] Rich COMSATS demo seeder (`npm run prisma:seed:demo`) with 5 students, 8 reports, and sample chat
+  - [x] Multimodal image comparison using inline base64 image parts with Gemini vision

@@ -47,7 +47,7 @@ class EmailService {
       </div>
     `;
 
-    if (this.transporter && this.provider === 'smtp') {
+    if (this.transporter && this.provider === 'smtp' && process.env.NODE_ENV !== 'test') {
       try {
         await this.transporter.sendMail({
           from: config.email.from,

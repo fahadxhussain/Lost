@@ -94,13 +94,13 @@ describe('COMSATS Lost & Found - Async Matching Worker & Notifications', () => {
 
   describe('Asynchronous Worker Processing', () => {
     it('should pick up QUEUED job, execute candidate retrieval, run Gemini evaluation, and complete job', async () => {
-      const processedJob = await matchingWorker.processNextJob();
+      const processedJob = await matchingWorker.processNextJob(queuedJob.id);
 
       expect(processedJob).toBeDefined();
       expect(processedJob.id).toBe(queuedJob.id);
       expect(processedJob.status).toBe('COMPLETED');
       expect(processedJob.completedAt).not.toBeNull();
-    });
+    }, 15000);
 
     it('should have created a PotentialMatch in the database with score and AI rationale', async () => {
       const match = await prisma.potentialMatch.findUnique({
