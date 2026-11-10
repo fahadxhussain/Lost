@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   Button,
   ErrorNotice,
+  SuccessNotice,
   Field,
   Icon,
   Notice,
@@ -108,7 +109,7 @@ export default function ProfileScreen() {
         updateUser(updated);
         setName(updated.name || "");
         setPhoto(null);
-        setNotice("Your profile has been updated.");
+        setNotice("Profile updated successfully! Your changes are live.");
       } catch (err) {
         setError(errorMessage(err));
       }
@@ -200,9 +201,7 @@ export default function ProfileScreen() {
         />
       )}
       {notice ? (
-        <Text accessibilityLiveRegion="polite" style={s.body}>
-          {notice}
-        </Text>
+        <SuccessNotice message={notice} />
       ) : null}
       <Button
         title="Save profile"

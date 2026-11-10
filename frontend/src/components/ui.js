@@ -224,15 +224,37 @@ export function Notice({ title, children, dark }) {
     </View>
   );
 }
+export function SuccessNotice({ message }) {
+  if (!message) return null;
+  return (
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      style={s.successNotice}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Ionicons name="checkmark-circle" size={20} color={C.success} />
+        <Text style={[s.cardTitle, { color: C.success, flex: 1 }]}>
+          {message}
+        </Text>
+      </View>
+    </View>
+  );
+}
 export function ErrorNotice({ message, onRetry }) {
   if (!message) return null;
   return (
     <View
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
-      style={s.notice}
+      style={s.errorNotice}
     >
-      <Text style={{ color: C.danger }}>{message}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Ionicons name="alert-circle" size={20} color={C.danger} />
+        <Text style={[s.cardTitle, { color: C.danger, flex: 1 }]}>
+          {message}
+        </Text>
+      </View>
       {onRetry && <Button title="Try again" onPress={onRetry} secondary />}
     </View>
   );
@@ -465,6 +487,22 @@ export const s = StyleSheet.create({
   chipActive: { backgroundColor: C.primary },
   chipText: { color: C.text, fontSize: 12, fontWeight: "600" },
   notice: { padding: 18, gap: 8, borderRadius: 20, backgroundColor: C.soft },
+  successNotice: {
+    padding: 16,
+    gap: 6,
+    borderRadius: 16,
+    backgroundColor: C.successBg,
+    borderWidth: 1,
+    borderColor: C.success,
+  },
+  errorNotice: {
+    padding: 16,
+    gap: 6,
+    borderRadius: 16,
+    backgroundColor: "#FDEAED",
+    borderWidth: 1,
+    borderColor: C.danger,
+  },
   empty: { alignItems: "center", gap: 16, paddingVertical: 36 },
   emptyIcon: { backgroundColor: C.soft, padding: 24, borderRadius: 32 },
   photo: {

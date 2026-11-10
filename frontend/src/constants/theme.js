@@ -12,5 +12,7 @@ export const COLORS = {
   track: "#E3E5DF",
   primaryLight: "#20465A",
   danger: "#BD3246",
+  success: "#1A6B3C",
+  successBg: "#D6F0E0",
 };
 export const FONTS = { regular: "System", medium: "System", bold: "System" };
