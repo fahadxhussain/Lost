@@ -118,7 +118,7 @@ async function main() {
       description: 'Found a genuine Dell 65W black USB-C laptop charger in CS Block Lab 2 on desk 6 near the window.',
       incidentLocation: 'CS Block Lab 2',
       incidentDate: new Date('2026-11-09T17:15:00Z'),
-      imageUrl: 'https://images.unsplash.com/photo-1622445262464-84b14e572202?auto=format&fit=crop&w=1000&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1588508065123-287b28e013da?auto=format&fit=crop&w=1000&q=80',
     },
 
     // Pair 3: Student Card
@@ -140,7 +140,7 @@ async function main() {
       description: 'Found a university student card with blue strap on the stairs outside the central library entrance.',
       incidentLocation: 'Central Library Entrance',
       incidentDate: new Date('2026-11-10T09:45:00Z'),
-      imageUrl: 'https://images.unsplash.com/photo-1589363460779-cd717d7e8fa5?auto=format&fit=crop&w=1000&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1000&q=80',
     },
 
     // Unmatched Items
@@ -167,6 +167,32 @@ async function main() {
   ];
 
   console.log('\n--- Creating Demo Reports & Enqueueing Matching Jobs ---');
+
+  // Clean up any existing demo reports to ensure idempotency and prevent duplicates
+  const demoUserIds = Object.values(students).map((s) => s.id);
+  const existingDemoReports = await prisma.report.findMany({
+    where: { userId: { in: demoUserIds } },
+    select: { id: true },
+  });
+  const existingReportIds = existingDemoReports.map((r) => r.id);
+  if (existingReportIds.length > 0) {
+    await prisma.potentialMatch.deleteMany({
+      where: {
+        OR: [
+          { lostReportId: { in: existingReportIds } },
+          { foundReportId: { in: existingReportIds } },
+        ],
+      },
+    });
+    await prisma.matchingJob.deleteMany({
+      where: { sourceReportId: { in: existingReportIds } },
+    });
+    await prisma.report.deleteMany({
+      where: { id: { in: existingReportIds } },
+    });
+    console.log(`Cleaned up ${existingReportIds.length} previous demo reports for idempotency.`);
+  }
+
   for (const r of reportsData) {
     const created = await prisma.report.create({
       data: {
