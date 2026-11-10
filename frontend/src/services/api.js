@@ -1,13 +1,26 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
+import { NativeModules, Platform } from "react-native";
 import { io } from "socket.io-client";
 
 export const TOKEN_KEY = "@auth_token";
-export const API_BASE_URL = (
-  process.env.EXPO_PUBLIC_API_URL ||
-  `http://${Platform.OS === "android" ? "10.0.2.2" : "localhost"}:5000/api/v1`
-).replace(/\/$/, "");
+function resolveApiBaseUrl() {
+  if (process.env.EXPO_PUBLIC_API_URL)
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
+  const scriptURL =
+    NativeModules?.SourceCode?.getConstants?.()?.scriptURL ||
+    NativeModules?.SourceCode?.scriptURL ||
+    "";
+  const metroHost = scriptURL.match(/^https?:\/\/([^/:]+)/)?.[1];
+  const host =
+    metroHost && metroHost !== "localhost" && metroHost !== "127.0.0.1"
+      ? metroHost
+      : Platform.OS === "android"
+        ? "10.0.2.2"
+        : "localhost";
+  return `http://${host}:5000/api/v1`;
+}
+export const API_BASE_URL = resolveApiBaseUrl();
 export const SOCKET_URL = API_BASE_URL.replace(/\/api\/v1$/, "");
 export function createChatSocket(token) {
   return io(SOCKET_URL, {
