@@ -35,7 +35,6 @@ export function WelcomeScreen({ navigation }) {
             <Text style={styles.campusName}>CUI · ISLAMABAD</Text>
           </View>
           <View style={styles.networkBadge}>
-            <View style={styles.activeDot} />
             <Text style={styles.networkBadgeText}>STUDENT NETWORK</Text>
           </View>
         </View>
@@ -468,18 +467,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    minHeight: 52,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderColor: "rgba(255, 255, 255, 0.08)",
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 22,
     marginBottom: 6,
   },
   campusInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
+    gap: 8,
   },
   campusName: {
     color: "#D0DCE3",
@@ -488,19 +488,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   networkBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
     backgroundColor: "rgba(185, 241, 47, 0.12)",
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-  },
-  activeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: C.secondary,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
   },
   networkBadgeText: {
     color: C.secondary,
