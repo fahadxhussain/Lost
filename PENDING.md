@@ -10,8 +10,8 @@ This document tracks items that require confirmation, unresolved architecture po
    - *Current Implementation:* Fallback to local console logger in development + configurable SMTP/Nodemailer.
    - *Pending:* Confirm if COMSATS IT SMTP, Resend, or SendGrid credentials will be used in production.
 2. **Object / Image Storage Provider:**
-   - *Current Implementation:* Local multipart/disk upload abstraction with safe hashed filenames for local development, swappable for Supabase Storage or S3-compatible service (Cloudflare R2 / AWS S3).
-   - *Pending:* Confirm production storage bucket credentials.
+   - *Current Implementation:* Cloudinary object storage (`cloudinary`) with automatic WebP compression, CDN distribution, and local disk fallback.
+   - *Status:* **Resolved** (Cloudinary connected & verified).
 3. **Queue Provider:**
    - *Current Implementation:* Robust database-backed job queue table (`MatchingJob`) using row locking (`FOR UPDATE SKIP LOCKED`), retries, and backoff. Zero external broker dependency.
    - *Pending:* Confirm if migration to Supabase `pgmq` or Redis BullMQ is needed when scale demands.

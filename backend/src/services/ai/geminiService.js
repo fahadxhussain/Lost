@@ -10,8 +10,8 @@ class GeminiService {
     this.model = config.gemini.model;
   }
 
-  // Load image part from local disk or URL if available
-  getImagePart(imageUrl) {
+  // Load image part from local disk or remote URL (e.g. Cloudinary) if available
+  async getImagePart(imageUrl) {
     if (!imageUrl) return null;
 
     try {
@@ -23,6 +23,7 @@ class GeminiService {
         filename = path.basename(imageUrl);
       }
 
+      // 1. Check local disk first
       const filePath = path.join(uploadDirectory, filename);
       if (fs.existsSync(filePath)) {
         const ext = path.extname(filePath).toLowerCase();
@@ -37,6 +38,22 @@ class GeminiService {
             data: fileBuffer.toString('base64'),
           },
         };
+      }
+
+      // 2. If remote URL (e.g. Cloudinary CDN) and not found locally, fetch via HTTP
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        const response = await fetch(imageUrl);
+        if (response.ok) {
+          const contentType = response.headers.get('content-type') || 'image/jpeg';
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          return {
+            inlineData: {
+              mimeType: contentType,
+              data: buffer.toString('base64'),
+            },
+          };
+        }
       }
     } catch (err) {
       logger.warn(`[GeminiService] Could not load image from ${imageUrl}: ${err.message}`);
@@ -63,8 +80,10 @@ class GeminiService {
     }
 
     try {
-      const lostImagePart = this.getImagePart(lostItem.imageUrl);
-      const foundImagePart = this.getImagePart(foundItem.imageUrl);
+      const [lostImagePart, foundImagePart] = await Promise.all([
+        this.getImagePart(lostItem.imageUrl),
+        this.getImagePart(foundItem.imageUrl),
+      ]);
 
       const promptText = `
 You are an advisory assistant for a university Lost & Found office at COMSATS University Islamabad.
@@ -132,8 +151,24 @@ OUTPUT JSON FORMAT ONLY:
         .replace(/```json/gi, '')
         .replace(/```/g, '')
         .trim();
-      const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleanText);
+      let parsed;
+      try {
+        const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+        parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleanText);
+      } catch (parseErr) {
+        // Fallback regex parsing of individual fields if JSON has trailing issues
+        const scoreMatch = cleanText.match(/"score"\s*:\s*([0-9.]+)/i);
+        const reasoningMatch = cleanText.match(/"reasoning"\s*:\s*"([^"]*)"/i);
+        if (scoreMatch) {
+          parsed = {
+            score: parseFloat(scoreMatch[1]),
+            isMatch: parseFloat(scoreMatch[1]) >= 0.65,
+            reasoning: reasoningMatch ? reasoningMatch[1] : 'AI identified possible physical feature similarities.',
+          };
+        } else {
+          throw parseErr;
+        }
+      }
 
       return {
         score: Math.min(1.0, Math.max(0.0, parseFloat(parsed.score) || 0.0)),

@@ -7,7 +7,7 @@ async function createReport(req, res, next) {
     let imageUrl = req.body.imageUrl || null;
 
     if (req.file) {
-      imageUrl = getPublicImageUrl(req, req.file.filename);
+      imageUrl = await getPublicImageUrl(req, req.file.filename);
     }
 
     const result = await reportsService.createReport({
@@ -73,7 +73,7 @@ async function updateReport(req, res, next) {
   try {
     let imageUrl = req.body.imageUrl;
     if (req.file) {
-      imageUrl = getPublicImageUrl(req, req.file.filename);
+      imageUrl = await getPublicImageUrl(req, req.file.filename);
     }
 
     const updated = await reportsService.updateReport(req.params.id, req.user.id, {

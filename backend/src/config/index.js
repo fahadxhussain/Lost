@@ -38,5 +38,11 @@ module.exports = {
   storage: {
     provider: process.env.STORAGE_PROVIDER || 'local',
     uploadDir: process.env.UPLOAD_DIR || 'uploads',
+    cloudinary: {
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+      apiKey: process.env.CLOUDINARY_API_KEY || '',
+      apiSecret: process.env.CLOUDINARY_API_SECRET || '',
+      url: process.env.CLOUDINARY_URL || '',
+    },
   },
 };
