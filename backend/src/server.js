@@ -16,6 +16,9 @@ const io = new Server(server, {
   },
 });
 
+// Provide socket instance to Express app for REST event broadcasting
+app.set('io', io);
+
 // Socket Authentication Middleware
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;

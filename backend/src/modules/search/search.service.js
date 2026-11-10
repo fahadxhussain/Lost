@@ -65,6 +65,8 @@ class SearchService {
     const statusVal = status ? status.toUpperCase() : 'ACTIVE';
     const typeCondition = type ? Prisma.sql`AND r.type = ${type.toUpperCase()}::"ReportType"` : Prisma.empty;
     const categoryCondition = categoryId ? Prisma.sql`AND r.category_id = ${categoryId}` : Prisma.empty;
+    const startDateCondition = startDate ? Prisma.sql`AND r.incident_date >= ${new Date(startDate)}` : Prisma.empty;
+    const endDateCondition = endDate ? Prisma.sql`AND r.incident_date <= ${new Date(endDate)}` : Prisma.empty;
 
     // Use pg_trgm similarity and word similarity for typo tolerance
     const rawReports = await prisma.$queryRaw`
@@ -98,6 +100,8 @@ class SearchService {
       WHERE r.status = ${statusVal}::"ReportStatus"
         ${typeCondition}
         ${categoryCondition}
+        ${startDateCondition}
+        ${endDateCondition}
         AND (
           r.title ILIKE ${`%${trimmedQuery}%`}
           OR r.description ILIKE ${`%${trimmedQuery}%`}

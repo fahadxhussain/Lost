@@ -47,6 +47,12 @@ async function sendMessage(req, res, next) {
     const { content } = req.body;
     const message = await messagingService.sendMessage(req.params.id, req.user.id, content);
 
+    // Broadcast to real-time Socket.IO room if connected
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`conv_${req.params.id}`).emit('new_message', message);
+    }
+
     return res.status(201).json({
       status: 'success',
       data: message,
