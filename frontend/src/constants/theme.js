@@ -1,19 +1,15 @@
+// Palette sampled from ui_draft; shared by every screen.
 export const COLORS = {
-  primary: '#003366', // COMSATS Navy Blue
-  primaryLight: '#0055a5',
-  secondary: '#FF9900', // Accent Amber
-  background: '#F8F9FA',
-  cardBg: '#FFFFFF',
-  text: '#1E293B',
-  textMuted: '#64748B',
-  border: '#E2E8F0',
-  success: '#10B981',
-  danger: '#EF4444',
-  warning: '#F59E0B',
+  primary: "#0B3048",
+  secondary: "#B9F12F",
+  background: "#F2F0E9",
+  cardBg: "#FFFEFA",
+  text: "#0B3048",
+  textMuted: "#546974",
+  border: "#D6DCD9",
+  soft: "#E5E9E3",
+  track: "#E3E5DF",
+  primaryLight: "#20465A",
+  danger: "#BD3246",
 };
-
-export const FONTS = {
-  regular: 'System',
-  medium: 'System',
-  bold: 'System',
-};
+export const FONTS = { regular: "System", medium: "System", bold: "System" };
