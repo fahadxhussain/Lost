@@ -1,0 +1,396 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "COMSATS Lost & Found API",
+    "version": "1.0.0",
+    "description": "Comprehensive REST API and AI-assisted matching pipeline for COMSATS University Islamabad Lost & Found Final Year Project."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "example": "sp23-bse-001@isbstudent.comsats.edu.pk" },
+          "name": { "type": "string", "example": "Muhammad Ali" },
+          "rollNumber": { "type": "string", "example": "SP23-BSE-001" },
+          "status": { "type": "string", "enum": ["PENDING_VERIFICATION", "ACTIVE", "SUSPENDED"] }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string", "example": "Mobile Phone" },
+          "slug": { "type": "string", "example": "mobile-phone" },
+          "icon": { "type": "string", "example": "phone-portrait-outline" }
+        }
+      },
+      "Report": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "type": { "type": "string", "enum": ["LOST", "FOUND"] },
+          "categoryId": { "type": "string", "format": "uuid" },
+          "title": { "type": "string", "example": "Black Samsung Galaxy S23" },
+          "description": { "type": "string", "example": "Lost near CS Lab 2 desk with transparent bumper cover." },
+          "imageUrl": { "type": "string", "format": "uri" },
+          "incidentLocation": { "type": "string", "example": "CS Block Lab 2" },
+          "incidentDate": { "type": "string", "format": "date-time" },
+          "status": { "type": "string", "enum": ["ACTIVE", "RESOLVED", "CLOSED"] }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": { "description": "API is operational" }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "summary": "Register a student account",
+        "description": "Restricted strictly to COMSATS Islamabad student email domain.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "name"],
+                "properties": {
+                  "email": { "type": "string", "example": "sp23-bse-042@isbstudent.comsats.edu.pk" },
+                  "password": { "type": "string", "minLength": 8, "example": "Password123!" },
+                  "name": { "type": "string", "example": "Ali Hassan" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Registration successful, OTP dispatched via email" },
+          "400": { "description": "Invalid email domain or missing fields" }
+        }
+      }
+    },
+    "/api/v1/auth/verify-otp": {
+      "post": {
+        "summary": "Verify 6-digit OTP code",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["userId", "code"],
+                "properties": {
+                  "userId": { "type": "string", "format": "uuid" },
+                  "code": { "type": "string", "example": "123456" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Account activated, returns JWT token" },
+          "400": { "description": "Invalid or expired OTP" }
+        }
+      }
+    },
+    "/api/v1/auth/resend-otp": {
+      "post": {
+        "summary": "Resend OTP code",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "New OTP dispatched" }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "Log into student account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login successful, returns JWT token" },
+          "401": { "description": "Invalid credentials" },
+          "403": { "description": "Account not activated via OTP" }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "summary": "Get authenticated user profile",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Current student profile" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "summary": "List university item categories",
+        "responses": {
+          "200": { "description": "List of categories" }
+        }
+      }
+    },
+    "/api/v1/reports": {
+      "get": {
+        "summary": "List active reports (feed with filters)",
+        "parameters": [
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["LOST", "FOUND"] } },
+          { "name": "categoryId", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of reports" }
+        }
+      },
+      "post": {
+        "summary": "Create a new LOST or FOUND report",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["type", "categoryId", "title", "description"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["LOST", "FOUND"] },
+                  "categoryId": { "type": "string" },
+                  "title": { "type": "string" },
+                  "description": { "type": "string", "minLength": 10 },
+                  "incidentLocation": { "type": "string" },
+                  "incidentDate": { "type": "string", "format": "date-time" },
+                  "image": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Report created and queued for AI matching" }
+        }
+      }
+    },
+    "/api/v1/reports/me": {
+      "get": {
+        "summary": "Get authenticated user's own reports",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "List of student's reports" }
+        }
+      }
+    },
+    "/api/v1/reports/{id}": {
+      "get": {
+        "summary": "Get single report by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Report details" },
+          "404": { "description": "Report not found" }
+        }
+      },
+      "patch": {
+        "summary": "Update student's own report",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Report updated successfully" }
+        }
+      }
+    },
+    "/api/v1/reports/{id}/status": {
+      "patch": {
+        "summary": "Update report status (RESOLVED / CLOSED)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["ACTIVE", "RESOLVED", "CLOSED"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Status updated successfully" }
+        }
+      }
+    },
+    "/api/v1/reports/{id}/matches": {
+      "get": {
+        "summary": "Get potential AI matches for a report",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "List of shortlisted candidates with AI score and reasoning" }
+        }
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "summary": "Full-text and trigram fuzzy search across reports",
+        "description": "Pure PostgreSQL search (never calls Gemini).",
+        "parameters": [
+          { "name": "query", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["LOST", "FOUND"] } },
+          { "name": "categoryId", "in": "query", "schema": { "type": "string" } },
+          { "name": "startDate", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": { "description": "Ranked search results with relevance score" }
+        }
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "summary": "List student notifications",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "List of notifications" }
+        }
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "summary": "Get unread notification count badge",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Unread count" }
+        }
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "patch": {
+        "summary": "Mark notification as read",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Notification updated" }
+        }
+      }
+    },
+    "/api/v1/conversations": {
+      "get": {
+        "summary": "List student conversations",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Conversations list" }
+        }
+      },
+      "post": {
+        "summary": "Get or create conversation between students",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["otherUserId"],
+                "properties": {
+                  "otherUserId": { "type": "string", "format": "uuid" },
+                  "matchId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Conversation thread" }
+        }
+      }
+    },
+    "/api/v1/conversations/{id}/messages": {
+      "get": {
+        "summary": "Get paginated messages in a conversation",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } }
+        ],
+        "responses": {
+          "200": { "description": "Messages list" }
+        }
+      },
+      "post": {
+        "summary": "Send a message in a conversation",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Message sent and broadcast to room" }
+        }
+      }
+    }
+  }
+}

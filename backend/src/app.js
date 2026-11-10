@@ -15,15 +15,21 @@ const reportsRoutes = require('./modules/reports/reports.routes');
 const searchRoutes = require('./modules/search/search.routes');
 const notificationsRoutes = require('./modules/notifications/notifications.routes');
 const messagingRoutes = require('./modules/messaging/messaging.routes');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDoc = require('./docs/swagger.json');
 
 const app = express();
 
 // Security and utility middleware
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: '*', credentials: true }));
 app.use(morgan(config.nodeEnv === 'development' ? 'dev' : 'combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve interactive Swagger OpenAPI documentation
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 
 // Serve static uploads
 app.use('/uploads', express.static(path.join(__dirname, '..', config.storage.uploadDir)));
