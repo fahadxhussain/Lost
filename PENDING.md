@@ -48,10 +48,10 @@ This document tracks items that require confirmation, unresolved architecture po
 - [x] **Phase 5: Candidate Retrieval Algorithms**
   - [x] Opposite-type candidate retrieval with temporal and category matching
   - [x] Lexical token-overlap and trigram ranking
-- [ ] **Phase 6: Async Queue & Gemini Evaluation**
-  - [ ] Background matching worker process
-  - [ ] Gemini API client with structured schema responses
-  - [ ] Notification generation for both report owners
+- [x] **Phase 6: Async Queue & Gemini Evaluation**
+  - [x] Background matching worker process
+  - [x] Gemini API client with structured schema responses
+  - [x] Notification generation for both report owners
 - [ ] **Phase 7: In-App Messaging & Notifications**
   - [ ] Conversation threads and message persistence
   - [ ] Unread notification counts and delivery
